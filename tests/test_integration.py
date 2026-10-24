@@ -1,5 +1,5 @@
 """
-Integration test: Cedar-authorized streaming MCP server + mock Kafka + WebSocket clients.
+Integration test (auto insurance): Cedar-authorized streaming MCP server + mock Kafka + WebSocket clients.
 Runs everything in-process. No Docker needed.
 
   python -m unittest tests.test_integration -v
@@ -19,39 +19,21 @@ from mcp_streaming.messaging.mock_kafka import Producer
 from mcp_streaming.server.streaming_mcp_server_cedar import LogStreamConsumer, StreamingMCPServer, kafka_poll_loop
 import websockets
 
-SERVICES = ["api-gateway", "auth-service", "payment-service", "order-service", "inventory-db"]
-ERROR_MESSAGES = [
-    "Connection refused to inventory-db:5432",
-    "Timeout waiting for payment-service response (30s)",
-    "OutOfMemoryError: Java heap space",
-    "SSL handshake failed: certificate expired",
-    "Deadlock detected in transaction pool",
-]
-NORMAL_MESSAGES = [
-    "Request processed successfully",
-    "Cache hit for user session",
-    "Health check passed",
-]
+from mcp_streaming.domain import auto_insurance as domain
 
 producer = Producer({"bootstrap.servers": "localhost:9092"})
+TOPIC = domain.TOPIC
 
 
 def produce_logs(count: int, error_burst: bool = False):
-    for _ in range(count):
+    """Healthy insurance traffic, or an all-ERROR burst drawn from the incident scenarios."""
+    burst = [e for sc in domain.SCENARIOS for e in domain.render_scenario(sc)]
+    for i in range(count):
         if error_burst:
-            level = random.choice(["ERROR", "FATAL"])
-            msg = random.choice(ERROR_MESSAGES)
+            event = {**burst[i % len(burst)], "level": random.choice(["ERROR", "FATAL"])}
         else:
-            level = "INFO"
-            msg = random.choice(NORMAL_MESSAGES)
-        event = {
-            "timestamp": time.strftime("%Y-%m-%dT%H:%M:%S"),
-            "level": level,
-            "service": random.choice(SERVICES),
-            "message": msg,
-            "request_id": f"req-{random.randint(10000,99999)}",
-        }
-        producer.produce("app-logs", json.dumps(event).encode())
+            event = domain.normal_event()
+        producer.produce(TOPIC, json.dumps(event).encode())
 
 
 async def run_test():
@@ -68,15 +50,15 @@ async def run_test():
 
     await asyncio.sleep(0.3)
 
-    # --- Test 1: Cedar auth - ops-agent can subscribe and get_anomalies ---
-    print("\n📋 Test 1: ops-agent subscribes to app-logs")
+    # --- Test 1: Cedar auth - ai-agent can subscribe and get_anomalies ---
+    print("\n📋 Test 1: ai-agent subscribes to insurance-events")
     async with websockets.connect(uri) as ws:
-        await ws.send(json.dumps({"method": "auth", "principal": {"id": "agent-1", "role": "ops-agent"}}))
+        await ws.send(json.dumps({"method": "auth", "principal": {"id": "llm-agent", "role": "ai-agent"}}))
         resp = json.loads(await ws.recv())
         print(f"   Auth: {resp['type']}")
         assert resp["type"] == "authenticated", resp
 
-        await ws.send(json.dumps({"method": "subscribe", "params": {"topic": "app-logs"}}))
+        await ws.send(json.dumps({"method": "subscribe", "params": {"topic": TOPIC}}))
         resp = json.loads(await ws.recv())
         print(f"   Subscribe: {resp['type']} ✅")
         assert resp["type"] == "subscribed", resp
@@ -96,7 +78,7 @@ async def run_test():
         assert len(events) >= 5, events
 
         # Produce error burst
-        print("\n📋 Test 2: Error burst + anomaly detection")
+        print("\n📋 Test 2: Incident burst + anomaly detection")
         produce_logs(15, error_burst=True)
         await asyncio.sleep(0.5)
 
@@ -122,10 +104,10 @@ async def run_test():
             for e in summary["top_errors"][:3]:
                 print(f"     - ({e['count']}x) {e['message']}")
 
-    # --- Test 3: Cedar auth - viewer DENIED get_anomalies ---
-    print("\n📋 Test 3: viewer role denied get_anomalies (Cedar forbid)")
+    # --- Test 3: Cedar auth - unauthenticated viewer DENIED get_anomalies ---
+    print("\n📋 Test 3: viewer denied get_anomalies (default deny)")
     async with websockets.connect(uri) as ws:
-        await ws.send(json.dumps({"method": "auth", "principal": {"id": "agent-2", "role": "viewer"}}))
+        await ws.send(json.dumps({"method": "auth", "principal": {"id": "anon", "role": "viewer"}}))
         await ws.recv()
 
         await ws.send(json.dumps({"method": "get_anomalies"}))
@@ -134,22 +116,22 @@ async def run_test():
         assert (resp["type"], resp.get("code")) == ("error", "FORBIDDEN"), resp
         print(f"   Reason: {resp.get('message', '')}")
 
-    # --- Test 4: Cedar auth - readonly DENIED subscribe to audit-logs ---
-    print("\n📋 Test 4: readonly role denied subscribe to audit-logs (Cedar forbid)")
+    # --- Test 4: Cedar auth - ai-agent FORBIDDEN from the raw claimant-PII stream ---
+    print("\n📋 Test 4: ai-agent forbidden from claimant-pii (Cedar forbid)")
     async with websockets.connect(uri) as ws:
-        await ws.send(json.dumps({"method": "auth", "principal": {"id": "agent-3", "role": "readonly"}}))
+        await ws.send(json.dumps({"method": "auth", "principal": {"id": "llm-agent", "role": "ai-agent"}}))
         await ws.recv()
 
-        await ws.send(json.dumps({"method": "subscribe", "params": {"topic": "audit-logs"}}))
+        await ws.send(json.dumps({"method": "subscribe", "params": {"topic": domain.PII_STREAM}}))
         resp = json.loads(await ws.recv())
         print(f"   Response: {resp['type']} - {resp.get('code', '')} ✅")
         assert (resp["type"], resp.get("code")) == ("error", "FORBIDDEN"), resp
         print(f"   Reason: {resp.get('message', '')}")
 
-    # --- Test 5: Cedar auth - senior-ops CAN get_context ---
-    print("\n📋 Test 5: senior-ops gets full context window")
+    # --- Test 5: Cedar auth - SIU analyst CAN get_context ---
+    print("\n📋 Test 5: siu-analyst gets full context window")
     async with websockets.connect(uri) as ws:
-        await ws.send(json.dumps({"method": "auth", "principal": {"id": "agent-4", "role": "senior-ops"}}))
+        await ws.send(json.dumps({"method": "auth", "principal": {"id": "siu-1", "role": "siu-analyst"}}))
         await ws.recv()
 
         await ws.send(json.dumps({"method": "get_context"}))

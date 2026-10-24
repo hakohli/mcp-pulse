@@ -1,6 +1,13 @@
 """
 Cedar policy authorization for Streaming MCP Server.
-Controls which agents can subscribe to which log streams and call which methods.
+Controls which agents can subscribe to which insurance event streams and call which methods.
+
+Auto-insurance roles (see mcp_streaming.domain.auto_insurance.ROLES):
+  ai-agent     the LLM operations agent — anomaly summaries + redacted context,
+               explicitly forbidden from the raw claimant-PII stream
+  claims-ops   claims operations — anomaly summaries
+  siu-analyst  Special Investigations Unit (fraud) — full event context
+  viewer       unauthenticated default — live stream only
 Uses cedarpy for policy evaluation (falls back to built-in evaluator).
 """
 
@@ -9,17 +16,19 @@ import re
 
 # Cedar policies for MCP streaming authorization
 CEDAR_POLICIES = [
-    # Allow any authenticated agent to subscribe to app-logs
-    'permit(principal, action == Action::"subscribe", resource == Stream::"app-logs");',
+    # Any principal may subscribe to the operational insurance event stream
+    'permit(principal, action == Action::"subscribe", resource == Stream::"insurance-events");',
 
-    # Only ops-agents can request anomaly summaries
-    'permit(principal, action == Action::"get_anomalies", resource) when { principal.role == "ops-agent" };',
+    # Anomaly summaries: claims operations and the AI agent
+    'permit(principal, action == Action::"get_anomalies", resource) when { principal.role == "claims-ops" };',
+    'permit(principal, action == Action::"get_anomalies", resource) when { principal.role == "ai-agent" };',
 
-    # Only senior-ops can access full context (recent log window)
-    'permit(principal, action == Action::"get_context", resource) when { principal.role == "senior-ops" };',
+    # Event-level context: SIU fraud analysts and the AI agent (which redacts PII before its LLM)
+    'permit(principal, action == Action::"get_context", resource) when { principal.role == "siu-analyst" };',
+    'permit(principal, action == Action::"get_context", resource) when { principal.role == "ai-agent" };',
 
-    # Forbid any agent with "readonly" role from subscribing to sensitive streams
-    'forbid(principal, action == Action::"subscribe", resource == Stream::"audit-logs") when { principal.role == "readonly" };',
+    # The AI agent must never read the raw claimant-PII stream — forbid always wins
+    'forbid(principal, action == Action::"subscribe", resource == Stream::"claimant-pii") when { principal.role == "ai-agent" };',
 ]
 
 
@@ -51,9 +60,9 @@ class CedarAuthz:
     def is_authorized(self, principal: dict, action: str, resource: str) -> bool:
         """
         Evaluate Cedar policies. Default deny.
-        principal: {"id": "agent-1", "role": "ops-agent"}
+        principal: {"id": "llm-agent", "role": "ai-agent"}
         action: "subscribe", "get_anomalies", "get_context"
-        resource: "app-logs", "audit-logs"
+        resource: "insurance-events", "claimant-pii"
         """
         permitted = False
         for rule in self._parsed:
@@ -77,11 +86,12 @@ class CedarAuthz:
 
     def explain(self, principal: dict, action: str, resource: str) -> str:
         """Return human-readable explanation of the authorization decision."""
-        for rule in self._parsed:
-            if not self._matches(rule, principal, action, resource):
-                continue
+        matching = [r for r in self._parsed if self._matches(r, principal, action, resource)]
+        # Mirror is_authorized(): any matching forbid wins, regardless of policy order
+        for rule in matching:
             if rule["effect"] == "forbid":
                 return f"DENIED by forbid policy: action={action}, resource={resource}, required_role={rule.get('required_role')}"
+        if matching:
             return f"ALLOWED by permit policy: action={action}, resource={resource}"
         return f"DENIED (default deny): no matching policy for action={action}, resource={resource}, role={principal.get('role')}"
 
@@ -91,12 +101,14 @@ if __name__ == "__main__":
     authz = CedarAuthz()
 
     tests = [
-        ({"id": "agent-1", "role": "ops-agent"}, "subscribe", "app-logs"),
-        ({"id": "agent-1", "role": "ops-agent"}, "get_anomalies", "app-logs"),
-        ({"id": "agent-2", "role": "viewer"}, "get_anomalies", "app-logs"),
-        ({"id": "agent-3", "role": "senior-ops"}, "get_context", "app-logs"),
-        ({"id": "agent-4", "role": "ops-agent"}, "get_context", "app-logs"),
-        ({"id": "agent-5", "role": "readonly"}, "subscribe", "audit-logs"),
+        ({"id": "llm-agent", "role": "ai-agent"}, "subscribe", "insurance-events"),
+        ({"id": "llm-agent", "role": "ai-agent"}, "get_anomalies", "insurance-events"),
+        ({"id": "llm-agent", "role": "ai-agent"}, "get_context", "insurance-events"),
+        ({"id": "llm-agent", "role": "ai-agent"}, "subscribe", "claimant-pii"),
+        ({"id": "ops-lead", "role": "claims-ops"}, "get_anomalies", "insurance-events"),
+        ({"id": "ops-lead", "role": "claims-ops"}, "get_context", "insurance-events"),
+        ({"id": "siu-1", "role": "siu-analyst"}, "get_context", "insurance-events"),
+        ({"id": "anon", "role": "viewer"}, "get_anomalies", "insurance-events"),
     ]
 
     print("Cedar Policy Authorization Tests")

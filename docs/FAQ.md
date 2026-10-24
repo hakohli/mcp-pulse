@@ -1,22 +1,24 @@
-# MCP Live Streaming Demo — FAQ
+# MCP Live for Auto Insurance — FAQ
+
+*Auto-insurance edition (branch `usecase/auto-insurance`). Questions 33–37 are specific to the insurance use case.*
 
 ## General
 
 **1. What is this project?**
-A working demo of streaming MCP (Model Context Protocol) — instead of the traditional request/response model where agents poll for stale snapshots, this pushes real-time log events to AI agents via Kafka + WebSockets. Agents detect anomalies in under a second and suggest fixes automatically.
+A working demo of streaming MCP (Model Context Protocol) applied to an auto insurer's claims & telematics platform. Instead of agents polling for stale snapshots, live events (telematics, FNOL, coverage checks, claims, fraud scores, payouts) are pushed to an LLM-driven operations agent via Kafka + WebSockets. The agent detects anomalies in under a second and, within seconds, reports root cause, business impact, the owning team and next steps.
 
 **2. Who is this for?**
-Anyone interested in extending MCP beyond request/response — particularly developers building AI agents that need live, continuous context rather than point-in-time snapshots.
+Insurance technology, claims-operations and SRE teams exploring AI agents on live data — and anyone interested in extending MCP beyond request/response.
 
 **3. What problem does it solve?**
-Standard MCP is pull-based: agents ask for context and get a static snapshot. In operational scenarios (monitoring, incident response), context goes stale immediately. This demo shows how to push events to agents as they happen.
+Standard MCP is pull-based: agents ask for context and get a static snapshot. In claims and telematics operations, context goes stale in minutes: a hailstorm, a bad payments deploy or a fraud ring can be well under way before a batch report shows it. This demo pushes events to the agent as they happen.
 
 ---
 
 ## Architecture
 
 **4. What's the data flow?**
-`simulator/log_simulator.py` → Kafka (`app-logs` topic) → `server/streaming_mcp_server.py` → WebSocket → `agents/ai_agent.py` ⇄ LLM  (all under `mcp_streaming/`)
+`simulator/log_simulator.py` → Kafka (`insurance-events` topic) → `server/streaming_mcp_server.py` → WebSocket → `agents/ai_agent.py` ⇄ LLM  (all under `mcp_streaming/`)
 
 The LLM never talks to Kafka or the server directly — the agent exposes the server's MCP methods (`get_anomalies`, `get_context`) to the model as tools, and executes the model's tool calls over the same WebSocket.
 
@@ -36,13 +38,13 @@ Two levels:
 ## Authorization
 
 **8. What is Cedar and why is it here?**
-Cedar is a policy language (created by AWS) for fine-grained authorization. The demo uses it to control which agents can subscribe to which streams and call which methods — e.g., only `ops-agent` roles can call `get_anomalies`, only `senior-ops` can call `get_context`.
+Cedar is a policy language (created by AWS) for fine-grained authorization. The demo uses it to control which agents can subscribe to which streams and call which methods — e.g., `claims-ops` can read anomaly summaries, `siu-analyst` can read event-level context, and the `ai-agent` is forbidden from the raw claimant-PII stream.
 
 **9. What are the default Cedar policies?**
-- Any authenticated agent can subscribe to `app-logs`
-- Only `ops-agent` role can request anomaly summaries
-- Only `senior-ops` role can access the full context window
-- `readonly` agents are forbidden from subscribing to `audit-logs`
+- Any principal can subscribe to `insurance-events`
+- `claims-ops` and `ai-agent` can request anomaly summaries
+- `siu-analyst` and `ai-agent` can read event-level context (the agent redacts PII before its LLM sees it)
+- `ai-agent` is **forbidden** from subscribing to `claimant-pii`
 - Default deny — if no policy matches, access is denied
 
 **10. Is the Cedar integration production-ready?**
@@ -80,23 +82,17 @@ All code is in the `mcp_streaming/` package, grouped by role: `server/` (MCP ser
 Each subscriber gets a bounded `asyncio.Queue` (max 500 events). If a slow consumer's queue fills up, it's automatically dropped from the subscriber set. This prevents one slow agent from blocking the entire server.
 
 **17. What error patterns does the agent recognize?**
-With a real LLM, any — the model reasons over whatever the logs say, including the novel incidents `make simulator-ai` generates. The rule-based agents and the `mock` provider recognize six patterns with mapped remediation suggestions:
-- `Connection refused` → check service status, security groups
-- `Timeout waiting` → increase timeout, add circuit breaker
-- `OutOfMemoryError` → increase heap, check for leaks
-- `SSL handshake failed` → renew certificate
-- `Deadlock detected` → review isolation levels
-- `Disk usage critical` → clean logs, expand volume
+With a real LLM, any — the model reasons over whatever the logs say, including the novel incidents `make simulator-ai` generates. The rule-based agents and the `mock` provider recognize the seven built-in scenarios by signature and answer from their runbooks: telematics ingestion outage, policy-DB pool exhaustion, fraud-model outage, photo-estimate vendor certificate expiry, payout batch rejection, catastrophe (hail) FNOL surge, and a staged-accident fraud ring. A real LLM also uses those runbooks via the `search_runbooks` tool, but isn't limited to them.
 
 **18. How are error spikes simulated?**
-`mcp_streaming/simulator/log_simulator.py` runs on a 45-second cycle. Between ticks 30–40, it injects 3–6 ERROR events per second (with a 30% chance of a FATAL). Outside that window, it's normal INFO traffic with occasional WARNs. With `--ai`, an LLM pre-generates a causally ordered incident (root-cause service fails first, downstream services follow) ~25s before each spike, and the simulator replays it; if the LLM is unavailable it falls back to the static messages.
+`mcp_streaming/simulator/log_simulator.py` runs on a 45-second cycle. Outside incidents it emits healthy insurance traffic (trips, FNOLs, coverage checks, fraud scores, payouts) with occasional WARNs. Between ticks 30–40 it replays one incident scenario — 3–5 events per second, all in one region, root-cause service first — rotating through the seven built-ins, or a fixed one with `--scenario KEY`. With `--ai`, an LLM pre-generates a new incident ~25s ahead; its output is PII-redacted and validated, and the simulator falls back to a built-in scenario if the LLM is unavailable.
 
 ---
 
 ## Extending the Demo
 
 **19. Can I add my own log sources?**
-Yes — anything that produces JSON to the `app-logs` Kafka topic will flow through. Match the schema: `{"timestamp", "level", "service", "message", "request_id"}`.
+Yes — anything that produces JSON to the `insurance-events` Kafka topic will flow through. Match the schema: `{"timestamp", "level", "service", "event_type", "region", "message", "request_id"}`, plus optional `policy_id` / `claim_id`. To model a new incident, add a scenario (with signatures, root cause, impact, owner and remediation) to `SCENARIOS` in `mcp_streaming/domain/auto_insurance.py` — the simulator, the runbook tool, the mock LLM and the deck all pick it up.
 
 **20. Can I add new Cedar policies?**
 Add policy strings to the `CEDAR_POLICIES` list in `mcp_streaming/server/cedar_authz.py`. Use `mcp_streaming/server/streaming_mcp_server_cedar.py` (`make server-cedar`) to enforce them.
@@ -139,7 +135,7 @@ The current 100-event window conflates high-throughput periods with low-throughp
 
 **26. How would you handle multi-tenant isolation — multiple customers' logs on the same server?**
 Currently there's one Kafka topic and one subscriber pool. For multi-tenancy:
-- Use per-tenant Kafka topics (`app-logs-tenant-a`, `app-logs-tenant-b`) and have agents subscribe to their tenant's topic.
+- Use per-tenant Kafka topics (`insurance-events-carrier-a`, `insurance-events-carrier-b`) and have agents subscribe to their tenant's topic.
 - Extend the Cedar policies to bind principals to tenant IDs: `permit(principal, action == Action::"subscribe", resource) when { principal.tenant == resource.tenant };`
 - Add tenant context to the WebSocket handshake (JWT or API key) and validate before allowing subscription.
 
@@ -183,3 +179,23 @@ Kafka guarantees ordering within a partition. Since the demo uses a single-parti
 - If you scale to multiple partitions, ordering is only guaranteed per-partition. Events from different services could interleave differently per consumer.
 - WebSocket delivery is ordered (TCP), so no reordering between server and agent.
 - The weak link is the `notify_subscribers` fan-out — if one queue is near-full and another is empty, they'll diverge in how far behind they are.
+
+---
+
+## Auto Insurance
+
+**33. Which insurance problems does this target?**
+Operational ones that hurt policyholders and claims economics when noticed late: crash-triggered FNOL stalling, coverage verification outages, fraud-scoring outages that halt straight-through processing, estimating-vendor failures that push claims to field appraisers, payout failures after a deploy, catastrophe surges, and organized fraud rings. The agent separates **technical faults** (owned by SRE, payments, ML platform, vendor management) from **business anomalies** (owned by the CAT team or SIU).
+
+**34. Does the AI agent make claim, coverage or fraud decisions?**
+No. It is read-only and recommends next steps; the system prompt forbids approving, denying or closing claims, changing coverage or accusing claimants, and fraud signals are framed as SIU referrals. Any action that changes a claim, payment or policy should go through people and your existing approval workflows.
+
+**35. How is policyholder and claimant PII protected?**
+Three layers: (1) the simulator only uses synthetic identifiers; (2) the agent redacts emails, phone numbers, SSNs, VINs and card numbers from every tool result and prompt before the LLM sees them (`domain.redact`); (3) Cedar forbids the `ai-agent` role from the raw `claimant-pii` stream. For real data, extend the redaction rules to your schemas, and consider self-hosted models or Amazon Bedrock in your region to keep data within your boundary.
+
+**36. What would it take to run this against a real claims platform?**
+Publish your existing telematics/FNOL/claims/payments events (or CDC from their databases) to Kafka in the event schema; replace the scenario list with your own runbooks; wire real authentication into `verify_principal()` and use the official Cedar SDK; add audit logging of prompts, tool calls and outputs; evaluate diagnosis quality and false positives on historical incidents; and review with security, privacy and compliance (e.g. state claim-handling and privacy rules, GLBA, and AI-governance expectations such as the NAIC Model Bulletin). This repo is a reference demo, not a production system.
+
+**37. How do I demo a specific incident to a business audience?**
+`make demo-scenario SCENARIO=catastrophe_fnol_surge` (or `staged_accident_ring`, `payout_batch_rejected`, …; `make scenarios` lists them). Add `--interactive` via `python -m mcp_streaming.demo --scenario <key> --interactive` to take questions like *"Which region is affected?"* or *"What should claims ops tell customers?"*. The matching slide deck is `docs/presentation/MCP_Live_Auto_Insurance.pptx`.
+

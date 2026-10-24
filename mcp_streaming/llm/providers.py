@@ -279,24 +279,9 @@ class _OpenAIConversation(Conversation):
 
 
 # --------------------------------------------------------------------------- #
-# Mock provider — offline, deterministic, still exercises the tool-calling loop
+# Mock provider — offline, deterministic, still exercises the tool-calling loop.
+# Diagnoses come from the auto-insurance runbooks in mcp_streaming.domain.
 # --------------------------------------------------------------------------- #
-
-MOCK_REMEDIATIONS = {
-    "Connection refused": ("Target service is down or unreachable",
-                           ["Check the target service is running", "Verify security groups / network ACLs"]),
-    "Timeout waiting": ("Downstream service is slow or saturated",
-                        ["Check downstream health and latency", "Add a circuit breaker and tune timeouts"]),
-    "OutOfMemoryError": ("JVM heap exhaustion",
-                         ["Increase heap (-Xmx) or pod memory limit", "Capture a heap histogram to look for leaks"]),
-    "SSL handshake failed": ("Expired TLS certificate",
-                             ["Renew the certificate", "Add certificate-expiry alarms"]),
-    "Deadlock detected": ("Lock-ordering conflict in DB transactions",
-                          ["Review transaction isolation / lock order", "Consider optimistic locking"]),
-    "Disk usage critical": ("Log volume filling up",
-                            ["Rotate/vacuum old logs", "Expand the volume"]),
-}
-
 
 class MockLLM(LLM):
     name = "mock"
@@ -307,38 +292,52 @@ class MockLLM(LLM):
 
 class _MockConversation(Conversation):
     async def ask(self, text, execute_tool):
+        from mcp_streaming.domain import auto_insurance as domain  # lazy: keep providers domain-agnostic
+
         names = {t.name for t in self.tools}
+        wants_json = "JSON" in text
         anomalies: Dict[str, Any] = {}
         if "get_anomalies" in names:
             anomalies = await _run_tool(execute_tool, "get_anomalies", {})
 
         top = anomalies.get("top_errors") or []
         if not top:
-            if "JSON" not in text:
-                return "[mock] No significant errors in the current window — the system looks healthy."
-            return json.dumps({"severity": "low", "root_cause": "No significant errors in the current window.",
-                               "affected_services": [], "remediation": [], "confidence": 0.5,
-                               "summary": "System looks healthy."})
+            if not wants_json:
+                return "[mock] No significant errors in the current window — the platform looks healthy."
+            return json.dumps({"severity": "low", "summary": "Platform looks healthy.",
+                               "root_cause": "No significant errors in the current window.",
+                               "affected_services": [], "remediation": [], "confidence": 0.5})
 
         lead = top[0]["message"]
-        cause, steps = "Unknown error pattern", ["Investigate service logs and recent deployments"]
-        for pattern, (c, s) in MOCK_REMEDIATIONS.items():
-            if pattern in lead:
-                cause, steps = c, s
-                break
+        runbook: Dict[str, Any] = {}
+        if "search_runbooks" in names:
+            found = await _run_tool(execute_tool, "search_runbooks", {"query": lead})
+            runbook = (found.get("runbooks") or [{}])[0]
+        scenario = domain.match_scenario(lead)
+        if scenario:  # signature match is more precise than keyword search
+            runbook = {"likely_root_cause": scenario["root_cause"], "business_impact": scenario["business_impact"],
+                       "owner_key": scenario["owner"], "remediation": scenario["remediation"],
+                       "category": scenario["category"],
+                       "services": sorted({e[1] for e in scenario["events"]})}
+
         rate = anomalies.get("error_rate", 0)
         severity = "critical" if rate >= 0.5 else "high" if rate >= 0.3 else "medium"
-        if "JSON" not in text:  # chat question, not a structured diagnosis request
+        cause = runbook.get("likely_root_cause", "Unknown error pattern")
+        steps = runbook.get("remediation") or ["Investigate service logs and recent deployments"]
+        if not wants_json:
             return (f"[mock] Error rate is {rate:.0%} over the last {anomalies.get('window_size', '?')} events. "
-                    f"Most frequent error: '{lead}' ({top[0].get('count')}x). Likely cause: {cause}. "
+                    f"Most frequent: '{lead}' ({top[0].get('count')}x). Likely cause: {cause}. "
                     f"Suggested next step: {steps[0]}.")
         return json.dumps({
             "severity": severity,
-            "root_cause": f"{cause} (most frequent: '{lead}')",
-            "affected_services": [],
+            "summary": f"Error rate {rate:.0%}; dominant signal: {lead}",
+            "category": runbook.get("category", "platform"),
+            "root_cause": cause,
+            "business_impact": runbook.get("business_impact", "Unknown"),
+            "recommended_owner": runbook.get("owner_key", "platform-sre"),
+            "affected_services": runbook.get("services", []),
             "remediation": steps,
             "confidence": 0.6,
-            "summary": f"Error rate {rate:.0%}; dominant error: {lead}",
         })
 
 

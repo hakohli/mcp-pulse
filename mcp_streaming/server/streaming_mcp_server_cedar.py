@@ -5,6 +5,7 @@ Uses mock_kafka for local testing, real confluent_kafka in production.
 
 import asyncio
 import json
+import re
 import os
 from collections import deque
 from typing import Optional, Dict, Set
@@ -16,11 +17,22 @@ else:
     from mcp_streaming.messaging.mock_kafka import Consumer, Producer
 
 import websockets
+
+from mcp_streaming.domain import auto_insurance as domain
 from mcp_streaming.server.cedar_authz import CedarAuthz
 
 
+_DIGITS = re.compile(r"\d+")
+
+
+def _error_signature(message):
+    # type: (str) -> str
+    """Group errors that differ only by IDs/numbers (CLM-136213 -> CLM-#) so counts are meaningful."""
+    return _DIGITS.sub("#", message)[:100]
+
+
 class LogStreamConsumer:
-    def __init__(self, broker="localhost:9092", topic="app-logs"):
+    def __init__(self, broker="localhost:9092", topic=domain.TOPIC):
         self.topic = topic
         self.consumer = Consumer({
             "bootstrap.servers": broker,
@@ -40,7 +52,7 @@ class LogStreamConsumer:
         event = json.loads(msg.value().decode("utf-8"))
         self.recent.append(event)
         if event.get("level") in ("ERROR", "FATAL"):
-            key = event.get("message", "")[:80]
+            key = _error_signature(event.get("message", ""))
             self.error_counts[key] = self.error_counts.get(key, 0) + 1
         return event
 

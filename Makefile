@@ -2,8 +2,9 @@
 # Uses the project virtualenv if present, otherwise python3 on PATH.
 PYTHON ?= $(if $(wildcard .venv/bin/python),.venv/bin/python,python3)
 export PYTHONUNBUFFERED := 1
+SCENARIO ?= staged_accident_ring
 
-.PHONY: help install demo demo-offline demo-chat kafka-up kafka-down server server-cedar simulator simulator-ai agent agent-chat test clean
+.PHONY: help install demo demo-offline demo-chat demo-scenario scenarios kafka-up kafka-down server server-cedar simulator simulator-ai agent agent-chat test deck clean
 
 help:  ## List available targets
 	@grep -E '^[a-z-]+:.*## ' $(MAKEFILE_LIST) | awk -F':.*## ' '{printf "  make %-14s %s\n", $$1, $$2}'
@@ -20,6 +21,12 @@ demo-offline:  ## End-to-end demo with the offline mock LLM, stops after 40s
 
 demo-chat:  ## End-to-end demo + interactive chat + LLM-generated incidents
 	$(PYTHON) -m mcp_streaming.demo --interactive --ai
+
+demo-scenario:  ## Demo one incident, e.g. make demo-scenario SCENARIO=staged_accident_ring
+	$(PYTHON) -m mcp_streaming.demo --scenario $(SCENARIO)
+
+scenarios:  ## List the built-in auto-insurance incident scenarios
+	$(PYTHON) -m mcp_streaming.simulator.log_simulator --list-scenarios
 
 kafka-up:  ## Start Kafka in Docker (127.0.0.1:9092)
 	docker compose up -d
@@ -47,6 +54,9 @@ agent-chat:  ## LLM agent with interactive chat
 
 test:  ## Run all tests (offline: no Docker, no LLM, no network)
 	$(PYTHON) -m unittest discover -s tests -t . -v
+
+deck:  ## Rebuild the auto-insurance slide deck (needs requirements-docs.txt)
+	$(PYTHON) docs/presentation/build_deck.py
 
 clean:  ## Remove caches
 	find . -name __pycache__ -type d -prune -not -path './.venv/*' -exec rm -rf {} +

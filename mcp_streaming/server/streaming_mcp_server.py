@@ -1,15 +1,19 @@
 """
 Streaming MCP Server — pushes live log events to AI agents via WebSocket.
-Consumes from Kafka topic 'app-logs', analyzes patterns, streams to subscribers.
+Consumes the auto-insurance event topic (default 'insurance-events'), analyzes patterns,
+streams to subscribers.
 """
 
 import asyncio
 import json
+import re
 import os
 import time
 from collections import deque
 from typing import Dict, Optional, Set
 import websockets
+
+from mcp_streaming.domain import auto_insurance as domain
 
 # USE_MOCK_KAFKA=1 swaps in the in-process mock (used by mcp_streaming.demo; no Docker needed)
 if os.environ.get("USE_MOCK_KAFKA") == "1":
@@ -19,10 +23,19 @@ else:
 
 # --- Kafka-backed event stream ---
 
+_DIGITS = re.compile(r"\d+")
+
+
+def _error_signature(message):
+    # type: (str) -> str
+    """Group errors that differ only by IDs/numbers (CLM-136213 -> CLM-#) so counts are meaningful."""
+    return _DIGITS.sub("#", message)[:100]
+
+
 class LogStreamConsumer:
     """Consumes log events from Kafka and notifies subscribers."""
 
-    def __init__(self, broker="localhost:9092", topic="app-logs"):
+    def __init__(self, broker="localhost:9092", topic=domain.TOPIC):
         self.topic = topic
         self.consumer = Consumer({
             "bootstrap.servers": broker,
@@ -45,7 +58,7 @@ class LogStreamConsumer:
 
     def _track_errors(self, event: dict):
         if event.get("level") in ("ERROR", "FATAL"):
-            key = event.get("message", "")[:80]
+            key = _error_signature(event.get("message", ""))
             self.error_counts[key] = self.error_counts.get(key, 0) + 1
 
     def get_anomaly_summary(self) -> dict:
@@ -87,7 +100,7 @@ class StreamingMCPServer:
     """
     MCP server that supports both standard request/response AND streaming subscriptions.
     Protocol:
-      -> {"method": "subscribe", "params": {"topic": "app-logs"}}
+      -> {"method": "subscribe", "params": {"topic": "insurance-events"}}
       <- {"type": "event", "data": {...}}  (continuous stream)
       -> {"method": "get_anomalies"}
       <- {"type": "response", "data": {...}}

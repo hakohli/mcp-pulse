@@ -14,6 +14,7 @@ os.environ.pop("USE_REAL_KAFKA", None)
 
 import websockets
 
+from mcp_streaming.domain import auto_insurance as domain
 from mcp_streaming.agents.ai_agent import AIAgent, MCPConnection, filter_events, format_diagnosis
 from mcp_streaming.llm import LLMError, Tool, create_llm, extract_json
 from mcp_streaming.messaging.mock_kafka import Producer
@@ -24,7 +25,7 @@ producer = Producer({"bootstrap.servers": "unused"})
 
 def produce(level, service, message, n=1):
     for _ in range(n):
-        producer.produce("app-logs", json.dumps({
+        producer.produce(domain.TOPIC, json.dumps({
             "timestamp": "2024-01-01T00:00:00", "level": level,
             "service": service, "message": message, "request_id": "req-1",
         }).encode())
@@ -75,13 +76,13 @@ class ToolLoopErrorHandlingTest(unittest.TestCase):
 class AuthStubTest(unittest.TestCase):
     def test_fail_closed_without_bypass(self):
         os.environ.pop("MCP_AUTH_TEST_BYPASS", None)
-        self.assertIsNone(verify_principal({"principal": {"id": "x", "role": "senior-ops"}}))
+        self.assertIsNone(verify_principal({"principal": {"id": "x", "role": "siu-analyst"}}))
 
     def test_bypass_validates_shape(self):
         os.environ["MCP_AUTH_TEST_BYPASS"] = "1"
         try:
-            self.assertEqual(verify_principal({"principal": {"id": "x", "role": "ops-agent"}}),
-                             {"id": "x", "role": "ops-agent"})
+            self.assertEqual(verify_principal({"principal": {"id": "x", "role": "ai-agent"}}),
+                             {"id": "x", "role": "ai-agent"})
             self.assertIsNone(verify_principal({"principal": "admin"}))
         finally:
             os.environ.pop("MCP_AUTH_TEST_BYPASS", None)
@@ -95,7 +96,7 @@ class EndToEndTest(unittest.TestCase):
 
     async def _run(self):
         os.environ["MCP_AUTH_TEST_BYPASS"] = "1"
-        log_stream = LogStreamConsumer(topic="app-logs")
+        log_stream = LogStreamConsumer(topic=domain.TOPIC)
         server = StreamingMCPServer(log_stream)
         ws_server = await websockets.serve(server.handle_client, "127.0.0.1", 0)
         port = ws_server.sockets[0].getsockname()[1]
@@ -105,17 +106,17 @@ class EndToEndTest(unittest.TestCase):
             agent = AIAgent(create_llm("mock"), window=10, threshold=0.3, cooldown=0, show="none",
                             out=lines.append)
             async with websockets.connect(f"ws://127.0.0.1:{port}") as ws:
-                await ws.send(json.dumps({"method": "auth", "principal": {"id": "t", "role": "ops-agent"}}))
+                await ws.send(json.dumps({"method": "auth", "principal": {"id": "t", "role": "ai-agent"}}))
                 self.assertEqual(json.loads(await ws.recv())["type"], "authenticated")
-                await ws.send(json.dumps({"method": "subscribe", "params": {"topic": "app-logs"}}))
+                await ws.send(json.dumps({"method": "subscribe", "params": {"topic": domain.TOPIC}}))
                 self.assertEqual(json.loads(await ws.recv())["type"], "subscribed")
 
                 conn = MCPConnection(ws, agent.on_event)
                 agent.conn = conn
                 reader = asyncio.ensure_future(conn.reader())
 
-                produce("INFO", "api-gateway", "Request processed successfully", 4)
-                produce("ERROR", "inventory-db", "Connection refused to inventory-db:5432", 8)
+                produce("INFO", "fnol-service", "FNOL CLM-100001 created via mobile app for POL-200002", 4)
+                produce("ERROR", "policy-admin", "DB connection pool exhausted (50/50) on policy-db-primary", 8)
 
                 for _ in range(50):
                     if agent.diagnoses and not agent.diagnosing:
@@ -126,7 +127,9 @@ class EndToEndTest(unittest.TestCase):
             self.assertTrue(agent.diagnoses, "agent never produced a diagnosis")
             d = agent.diagnoses[0]
             self.assertIn(d["severity"], ("high", "critical"))
-            self.assertIn("Connection refused", d["root_cause"])
+            self.assertIn("connection pool", d["root_cause"])
+            self.assertEqual(d["recommended_owner"], "platform-sre")
+            self.assertIn("claims", d["business_impact"])
             self.assertTrue(d["remediation"])
             self.assertIn("AI DIAGNOSIS", "\n".join(lines))
         finally:
@@ -140,13 +143,14 @@ class EndToEndTest(unittest.TestCase):
 
     async def _forbidden(self):
         os.environ["MCP_AUTH_TEST_BYPASS"] = "1"
-        log_stream = LogStreamConsumer(topic="app-logs")
+        log_stream = LogStreamConsumer(topic=domain.TOPIC)
         ws_server = await websockets.serve(StreamingMCPServer(log_stream).handle_client, "127.0.0.1", 0)
         port = ws_server.sockets[0].getsockname()[1]
         try:
             agent = AIAgent(create_llm("mock"), show="none", out=lambda *_: None)
             async with websockets.connect(f"ws://127.0.0.1:{port}") as ws:
-                await ws.send(json.dumps({"method": "auth", "principal": {"id": "t", "role": "ops-agent"}}))
+                # claims-ops may read anomaly summaries but not event-level context
+                await ws.send(json.dumps({"method": "auth", "principal": {"id": "t", "role": "claims-ops"}}))
                 await ws.recv()
                 agent.conn = MCPConnection(ws, agent.on_event)
                 reader = asyncio.ensure_future(agent.conn.reader())

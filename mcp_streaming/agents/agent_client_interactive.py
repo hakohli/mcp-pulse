@@ -7,27 +7,18 @@ import json
 import sys
 import websockets
 
+from mcp_streaming.domain import auto_insurance as domain
+
 ANOMALY_THRESHOLD = 0.3
 
-FIX_SUGGESTIONS = {
-    "Connection refused": "Check if the target service is running. Verify security groups and network ACLs.",
-    "Timeout waiting": "Increase timeout or check downstream service health. Add circuit breaker.",
-    "OutOfMemoryError": "Increase JVM heap: `-Xmx4g`. Check for memory leaks.",
-    "SSL handshake failed": "Renew certificate: `certbot renew`.",
-    "Deadlock detected": "Review transaction isolation levels. Consider optimistic locking.",
-    "Disk usage critical": "Clean old logs. Add log rotation. Expand volume.",
-}
-
 def suggest_fix(message: str) -> str:
-    for pattern, fix in FIX_SUGGESTIONS.items():
-        if pattern in message:
-            return fix
-    return "Investigate service logs and recent deployments."
+    """First step of the matching auto-insurance runbook."""
+    return domain.suggest_fix(message)
 
 async def run_agent():
     uri = "ws://localhost:8765"
     async with websockets.connect(uri) as ws:
-        await ws.send(json.dumps({"method": "subscribe", "params": {"topic": "app-logs"}}))
+        await ws.send(json.dumps({"method": "subscribe", "params": {"topic": domain.TOPIC}}))
         ack = json.loads(await ws.recv())
         print(f"✅ {ack['type']} to {ack.get('topic', 'stream')}")
         print("💬 Commands: anomalies | context | status | help | quit\n")
@@ -94,6 +85,6 @@ async def run_agent():
         await asyncio.gather(reader(), input_handler())
 
 if __name__ == "__main__":
-    print("🤖 Interactive AI Agent — Live Log Monitor")
+    print("🤖 Rule-based Interactive Agent (no LLM) — Auto Insurance")
     print("=" * 50)
     asyncio.run(run_agent())

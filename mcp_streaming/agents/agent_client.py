@@ -7,28 +7,19 @@ import asyncio
 import json
 import websockets
 
+from mcp_streaming.domain import auto_insurance as domain
+
 ANOMALY_THRESHOLD = 0.3
 
-FIX_SUGGESTIONS = {
-    "Connection refused": "Check if the target service is running. Verify security groups and network ACLs. Try: `docker ps` or `systemctl status <service>`",
-    "Timeout waiting": "Increase timeout threshold or check downstream service health. Consider adding circuit breaker pattern.",
-    "OutOfMemoryError": "Increase JVM heap: `-Xmx4g`. Check for memory leaks with `jmap -histo`. Consider pod memory limits in k8s.",
-    "SSL handshake failed": "Renew certificate: `certbot renew`. Check cert expiry: `openssl x509 -enddate -noout -in cert.pem`",
-    "Deadlock detected": "Review transaction isolation levels. Check for lock ordering issues. Consider optimistic locking.",
-    "Disk usage critical": "Clean old logs: `journalctl --vacuum-time=3d`. Add log rotation. Expand volume.",
-}
-
 def suggest_fix(message: str) -> str:
-    for pattern, fix in FIX_SUGGESTIONS.items():
-        if pattern in message:
-            return fix
-    return "Investigate service logs and recent deployments."
+    """First step of the matching auto-insurance runbook."""
+    return domain.suggest_fix(message)
 
 async def run_agent():
     uri = "ws://localhost:8765"
     async with websockets.connect(uri) as ws:
         # Subscribe to live stream
-        await ws.send(json.dumps({"method": "subscribe", "params": {"topic": "app-logs"}}))
+        await ws.send(json.dumps({"method": "subscribe", "params": {"topic": domain.TOPIC}}))
         ack = json.loads(await ws.recv())
         print(f"✅ {ack['type']} to {ack.get('topic', 'stream')}\n")
 
@@ -74,6 +65,6 @@ async def run_agent():
                 error_window.clear()
 
 if __name__ == "__main__":
-    print("🤖 AI Agent — Live Log Monitor")
+    print("🤖 Rule-based Agent (no LLM) — Auto Insurance Event Monitor")
     print("=" * 50)
     asyncio.run(run_agent())

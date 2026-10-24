@@ -1,5 +1,6 @@
 """
-One-command end-to-end demo — no Docker, no Kafka install.
+One-command end-to-end demo — auto-insurance claims & telematics platform.
+No Docker, no Kafka install.
 
 Runs the real streaming MCP server, the log simulator and the LLM agent in a
 single process, connected through the in-process mock Kafka and a loopback
@@ -9,6 +10,9 @@ WebSocket. Same code paths as the multi-terminal setup; only the bus is mocked.
   python -m mcp_streaming.demo --provider mock               # fully offline
   python -m mcp_streaming.demo --interactive --ai            # chat + LLM-generated incidents
   python -m mcp_streaming.demo --provider mock --duration 40
+  python -m mcp_streaming.demo --scenario staged_accident_ring  # pick the incident to show
+
+Scenarios: python -m mcp_streaming.simulator.log_simulator --list-scenarios
 """
 
 import argparse
@@ -22,6 +26,7 @@ os.environ["USE_MOCK_KAFKA"] = "1"  # must be set before importing server/simula
 import websockets  # noqa: E402
 
 from mcp_streaming.agents import ai_agent  # noqa: E402
+from mcp_streaming.domain import auto_insurance as domain  # noqa: E402
 from mcp_streaming.simulator import log_simulator  # noqa: E402
 from mcp_streaming.llm import LLMError  # noqa: E402
 from mcp_streaming.server.streaming_mcp_server import LogStreamConsumer, StreamingMCPServer, kafka_poll_loop  # noqa: E402
@@ -33,7 +38,9 @@ def parse_args(argv=None):
     p.add_argument("--interactive", "-i", action="store_true", help="chat with the agent while it monitors")
     p.add_argument("--ai", action="store_true", help="let the LLM generate incident scenarios in the simulator")
     p.add_argument("--duration", type=float, default=0, help="stop after N seconds (0 = run until Ctrl+C)")
-    p.add_argument("--first-spike", type=int, default=10, help="seconds until the first error spike (default 10)")
+    p.add_argument("--first-spike", type=int, default=10, help="seconds until the first incident (default 10)")
+    p.add_argument("--scenario", choices=sorted(domain.SCENARIOS_BY_KEY),
+                   help="always replay this incident (default: rotate through all of them)")
     p.add_argument("--show", choices=["all", "errors", "none"], help="which streamed events the agent prints")
     p.add_argument("--port", type=int, default=0, help="loopback port for the MCP server (default: random free port)")
     return p.parse_args(argv)
@@ -51,7 +58,7 @@ async def main(args):
     # 2. Log simulator in a background thread (it is a blocking 1s-tick loop)
     ai = log_simulator.AIScenarioGenerator(args.provider) if args.ai else None
     start_tick = max(0, 30 - args.first_spike)
-    threading.Thread(target=log_simulator.run, args=(ai, start_tick), daemon=True).start()
+    threading.Thread(target=log_simulator.run, args=(ai, start_tick, args.scenario), daemon=True).start()
     await asyncio.sleep(0.5)
 
     # 3. LLM agent
@@ -81,7 +88,7 @@ async def main(args):
 
 
 if __name__ == "__main__":
-    print("🚀 MCP Live — end-to-end AI demo (single process)")
+    print("🚗 MCP Live for Auto Insurance — end-to-end AI demo (single process)")
     print("=" * 50)
     try:
         asyncio.run(main(parse_args()))
