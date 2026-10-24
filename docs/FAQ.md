@@ -1,4 +1,4 @@
-# MCP Live Streaming Demo — FAQ
+# MCP Pulse — FAQ
 
 ## General
 

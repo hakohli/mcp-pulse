@@ -1,4 +1,4 @@
-# MCP Live: Streaming Context to AI Agents
+# MCP Pulse: Streaming Context to AI Agents
 
 A working demo of **streaming MCP (Model Context Protocol)** — pushing real-time context to AI agents using Kafka, WebSockets, and Cedar authorization.
 
@@ -131,7 +131,7 @@ Industry editions of this demo live in [`use-cases/`](use-cases/). Each is a com
 
 | Use case | Folder | Branch | Highlights |
 |----------|--------|--------|------------|
-| 🚗 **Auto insurance** | [`use-cases/auto-insurance/`](use-cases/auto-insurance/) | [`usecase/auto-insurance`](https://github.com/hakohli/mcp-streaming-demo/tree/usecase/auto-insurance) | Claims & telematics platform (telematics, FNOL, coverage, fraud, payouts); 7 incident scenarios with runbooks; diagnosis with business impact and owning team; PII redaction; insurance Cedar roles; 18-slide deck |
+| 🚗 **Auto insurance** | [`use-cases/auto-insurance/`](use-cases/auto-insurance/) | [`usecase/auto-insurance`](https://github.com/hakohli/mcp-pulse/tree/usecase/auto-insurance) | Claims & telematics platform (telematics, FNOL, coverage, fraud, payouts); 7 incident scenarios with runbooks; diagnosis with business impact and owning team; PII redaction; insurance Cedar roles; 18-slide deck |
 
 ```bash
 cd use-cases/auto-insurance
@@ -144,7 +144,7 @@ Keep the folders identical to their branches with `make check-use-cases` / `make
 ## Project Structure
 
 ```
-mcp-streaming-demo/
+mcp-pulse/
 ├── README.md                  ← you are here
 ├── Makefile                   ← short commands: `make help`
 ├── requirements.txt           ← pinned Python dependencies
@@ -174,7 +174,7 @@ mcp-streaming-demo/
 ├── docs/
 │   ├── FAQ.md                 ← 35 questions: basics, architecture, LLM, scaling, security
 │   └── presentation/
-│       └── MCP_Live_Streaming_Context.pptx
+│       └── MCP_Pulse_Streaming_Context.pptx
 │
 ├── scripts/
 │   └── sync_use_cases.sh      ← keep use-cases/* identical to their usecase/* branches
@@ -355,7 +355,7 @@ To see the policy decisions on their own: `python -m mcp_streaming.server.cedar_
 
 - [use-cases/](use-cases/) — industry editions, starting with [auto insurance](use-cases/auto-insurance/)
 - [docs/FAQ.md](docs/FAQ.md) — 35 questions covering basics, architecture, the LLM integration, scaling, failure modes and security
-- [docs/presentation/MCP_Live_Streaming_Context.pptx](docs/presentation/MCP_Live_Streaming_Context.pptx) — slide deck
+- [docs/presentation/MCP_Pulse_Streaming_Context.pptx](docs/presentation/MCP_Pulse_Streaming_Context.pptx) — slide deck
 
 ## Teardown
 

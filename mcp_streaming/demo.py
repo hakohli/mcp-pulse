@@ -81,7 +81,7 @@ async def main(args):
 
 
 if __name__ == "__main__":
-    print("🚀 MCP Live — end-to-end AI demo (single process)")
+    print("🚀 MCP Pulse — end-to-end AI demo (single process)")
     print("=" * 50)
     try:
         asyncio.run(main(parse_args()))
