@@ -3,7 +3,7 @@
 PYTHON ?= $(if $(wildcard .venv/bin/python),.venv/bin/python,python3)
 export PYTHONUNBUFFERED := 1
 
-.PHONY: help install demo demo-offline demo-chat kafka-up kafka-down server server-cedar simulator simulator-ai agent agent-chat test clean
+.PHONY: help install demo demo-offline demo-chat kafka-up kafka-down server server-cedar simulator simulator-ai agent agent-chat test sync-use-cases check-use-cases clean
 
 help:  ## List available targets
 	@grep -E '^[a-z-]+:.*## ' $(MAKEFILE_LIST) | awk -F':.*## ' '{printf "  make %-14s %s\n", $$1, $$2}'
@@ -47,6 +47,12 @@ agent-chat:  ## LLM agent with interactive chat
 
 test:  ## Run all tests (offline: no Docker, no LLM, no network)
 	$(PYTHON) -m unittest discover -s tests -t . -v
+
+sync-use-cases:  ## Refresh use-cases/* from their usecase/* branches (review, then commit)
+	scripts/sync_use_cases.sh
+
+check-use-cases:  ## Fail if any use-cases/* folder has drifted from its branch
+	scripts/sync_use_cases.sh --check
 
 clean:  ## Remove caches
 	find . -name __pycache__ -type d -prune -not -path './.venv/*' -exec rm -rf {} +
