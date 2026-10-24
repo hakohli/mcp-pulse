@@ -7,7 +7,7 @@ every slide for the auto-insurance use case, swaps in insurance diagrams
 mcp_streaming.domain.auto_insurance so the deck always matches the demo.
 
   pip install -r requirements-docs.txt
-  python docs/presentation/build_deck.py     # from the repository root
+  python docs/presentation/build_deck.py     # from the project root
 """
 
 import os

@@ -1,6 +1,6 @@
 # MCP Live for Auto Insurance — FAQ
 
-*Auto-insurance edition (branch `usecase/auto-insurance`). Questions 33–37 are specific to the insurance use case.*
+*Auto-insurance edition — branch `usecase/auto-insurance`, mirrored on `main` under `use-cases/auto-insurance/`. Questions 33–37 are specific to the insurance use case.*
 
 ## General
 
@@ -72,7 +72,7 @@ Prefix the command with `PYTHONUNBUFFERED=1` (e.g. `PYTHONUNBUFFERED=1 python -m
 `make demo` — server, simulator and agent in a single process. For the real-Kafka setup, use the tmux one-liner from the README (three panes: server, simulator, agent).
 
 **15b. Where does everything live, and how do I run a single component?**
-All code is in the `mcp_streaming/` package, grouped by role: `server/` (MCP servers + Cedar), `agents/` (LLM agent + rule-based baselines), `llm/` (providers), `simulator/` (log producer), `messaging/` (mock Kafka). Tests are in `tests/`, docs in `docs/`. Run any component from the repository root with `python -m mcp_streaming.<folder>.<module>`, or use the matching `make` target (`make help` lists them). See *Project Structure* in the README.
+All code is in the `mcp_streaming/` package, grouped by role: `server/` (MCP servers + Cedar), `agents/` (LLM agent + rule-based baselines), `llm/` (providers), `simulator/` (log producer), `messaging/` (mock Kafka), `domain/` (the auto-insurance model). Tests are in `tests/`, docs in `docs/`. Run any component from the project root (the folder containing `mcp_streaming/`) with `python -m mcp_streaming.<folder>.<module>`, or use the matching `make` target (`make help` lists them). See *Project Structure* in the README.
 
 ---
 

@@ -1,6 +1,10 @@
 # MCP Live for Auto Insurance: Streaming Claims & Telematics Context to AI Agents
 
-> **Branch `usecase/auto-insurance`** — the auto-insurance edition of [mcp-streaming-demo](https://github.com/hakohli/mcp-streaming-demo). The domain-neutral version (and the cross-industry overview) lives on [`main`](https://github.com/hakohli/mcp-streaming-demo/tree/main).
+> **Auto-insurance edition** of [mcp-streaming-demo](https://github.com/hakohli/mcp-streaming-demo), published in two places with identical content:
+> - branch [`usecase/auto-insurance`](https://github.com/hakohli/mcp-streaming-demo/tree/usecase/auto-insurance) — the source of truth, at the repository root
+> - folder [`use-cases/auto-insurance/`](https://github.com/hakohli/mcp-streaming-demo/tree/main/use-cases/auto-insurance) on `main` — a self-contained copy
+>
+> The domain-neutral version (and the cross-industry overview) is at the root of [`main`](https://github.com/hakohli/mcp-streaming-demo/tree/main).
 
 A working demo of **streaming MCP (Model Context Protocol)** for an auto insurer: live events from telematics, First Notice of Loss (FNOL), policy, claims, fraud-scoring and payments services are pushed through Kafka and WebSockets to an **LLM-driven operations agent**. When something goes wrong, the agent detects it in under a second and, within seconds, tells you the **root cause, the business impact on policyholders and claims SLAs, which team owns it, and what to do next** — while redacting PII and leaving every claim, coverage and fraud decision to people.
 
@@ -178,7 +182,7 @@ These are qualitative benefits; measure your own baseline (time to detect, cycle
 ## Project Structure
 
 ```
-mcp-streaming-demo/
+<project root>/                ← repo root on the branch · use-cases/auto-insurance/ on main
 ├── README.md                  ← you are here
 ├── Makefile                   ← short commands: `make help`
 ├── requirements.txt           ← pinned runtime dependencies
@@ -219,7 +223,7 @@ mcp-streaming-demo/
         └── template/MCP_Live_Streaming_Context.pptx  ← original generic deck (build input)
 ```
 
-All commands run **from the repository root**. Modules start with `python -m mcp_streaming.<area>.<module>`; every one also has a `make` shortcut.
+All commands run **from the project root** — the folder that contains `mcp_streaming/` (the repository root on the branch, or `use-cases/auto-insurance/` on `main`). Modules start with `python -m mcp_streaming.<area>.<module>`; every one also has a `make` shortcut.
 
 ## Quick Start — one command, no Docker
 
@@ -279,7 +283,7 @@ python -c "import asyncio; from mcp_streaming.llm import create_llm; print(async
 
 ## Full Setup — real Kafka, separate terminals
 
-Run each step in its own terminal, from the repository root, with the virtualenv activated (`source .venv/bin/activate`).
+Run each step in its own terminal, from the project root, with the virtualenv activated (`source .venv/bin/activate`).
 
 | Step | `make` | Command | What it does |
 |------|--------|---------|--------------|
@@ -351,7 +355,7 @@ The use-case tests check, among other things, that every scenario's error lines 
 
 | Symptom | Fix |
 |---------|-----|
-| `ModuleNotFoundError: No module named 'mcp_streaming'` | Run commands from the repository root (the folder containing `mcp_streaming/`). |
+| `ModuleNotFoundError: No module named 'mcp_streaming'` | Run commands from the project root (the folder containing `mcp_streaming/`). |
 | `LLM setup failed` / `Bedrock converse failed: ... AccessDeniedException` | Credentials lack `bedrock:InvokeModel`, or model access isn't enabled for that model in the Bedrock console/region. |
 | `Bedrock converse failed: ... ValidationException ... inference profile` | Use an inference-profile ID (`us.` prefix) or a model available in your `AWS_REGION`. |
 | `Diagnosis failed: request to http://127.0.0.1:11434/v1 failed` | Ollama isn't running (`ollama serve`), or the model isn't pulled (`ollama pull llama3.1`). |
