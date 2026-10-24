@@ -1,4 +1,4 @@
-# MCP Live for Auto Insurance — FAQ
+# MCP Pulse for Auto Insurance — FAQ
 
 *Auto-insurance edition — branch `usecase/auto-insurance`, mirrored on `main` under `use-cases/auto-insurance/`. Questions 33–37 are specific to the insurance use case.*
 
@@ -197,5 +197,5 @@ Three layers: (1) the simulator only uses synthetic identifiers; (2) the agent r
 Publish your existing telematics/FNOL/claims/payments events (or CDC from their databases) to Kafka in the event schema; replace the scenario list with your own runbooks; wire real authentication into `verify_principal()` and use the official Cedar SDK; add audit logging of prompts, tool calls and outputs; evaluate diagnosis quality and false positives on historical incidents; and review with security, privacy and compliance (e.g. state claim-handling and privacy rules, GLBA, and AI-governance expectations such as the NAIC Model Bulletin). This repo is a reference demo, not a production system.
 
 **37. How do I demo a specific incident to a business audience?**
-`make demo-scenario SCENARIO=catastrophe_fnol_surge` (or `staged_accident_ring`, `payout_batch_rejected`, …; `make scenarios` lists them). Add `--interactive` via `python -m mcp_streaming.demo --scenario <key> --interactive` to take questions like *"Which region is affected?"* or *"What should claims ops tell customers?"*. The matching slide deck is `docs/presentation/MCP_Live_Auto_Insurance.pptx`.
+`make demo-scenario SCENARIO=catastrophe_fnol_surge` (or `staged_accident_ring`, `payout_batch_rejected`, …; `make scenarios` lists them). Add `--interactive` via `python -m mcp_streaming.demo --scenario <key> --interactive` to take questions like *"Which region is affected?"* or *"What should claims ops tell customers?"*. The matching slide deck is `docs/presentation/MCP_Pulse_Auto_Insurance.pptx`.
 

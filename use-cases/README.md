@@ -4,7 +4,7 @@ Industry editions of the streaming-MCP + LLM agent demo. Each folder is a **comp
 
 | Use case | Folder | Branch (source of truth) | What it shows |
 |----------|--------|--------------------------|---------------|
-| 🚗 **Auto insurance** | [`auto-insurance/`](auto-insurance/) | [`usecase/auto-insurance`](https://github.com/hakohli/mcp-streaming-demo/tree/usecase/auto-insurance) | An LLM ops agent on an insurer's claims & telematics stream: FNOL, coverage, fraud scoring, payouts. Seven incident scenarios (outages, vendor failure, bad deploy, hailstorm surge, fraud ring) diagnosed with root cause, business impact, owner and next steps — with PII redaction, insurance Cedar roles and an 18-slide deck. |
+| 🚗 **Auto insurance** | [`auto-insurance/`](auto-insurance/) | [`usecase/auto-insurance`](https://github.com/hakohli/mcp-pulse/tree/usecase/auto-insurance) | An LLM ops agent on an insurer's claims & telematics stream: FNOL, coverage, fraud scoring, payouts. Seven incident scenarios (outages, vendor failure, bad deploy, hailstorm surge, fraud ring) diagnosed with root cause, business impact, owner and next steps — with PII redaction, insurance Cedar roles and an 18-slide deck. |
 
 ## Running a use case
 
