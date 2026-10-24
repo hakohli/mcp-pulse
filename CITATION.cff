@@ -1,0 +1,27 @@
+cff-version: 1.2.0
+message: "If you use or build on MCP Pulse, please cite it and link to the original repository. Forks are welcome: https://github.com/hakohli/mcp-pulse/fork"
+title: "MCP Pulse: Streaming Context to AI Agents"
+abstract: >-
+  A working demo of streaming MCP (Model Context Protocol): real-time events are
+  pushed through Kafka and WebSockets to an LLM-driven agent that detects anomalies
+  and diagnoses root cause, impact and remediation, with Cedar authorization.
+  Includes industry editions such as auto insurance.
+type: software
+authors:
+  - given-names: Harshit
+    family-names: Kohli
+    alias: hakohli
+repository-code: "https://github.com/hakohli/mcp-pulse"
+url: "https://github.com/hakohli/mcp-pulse"
+version: 0.2.0
+keywords:
+  - model-context-protocol
+  - mcp
+  - streaming
+  - kafka
+  - websockets
+  - llm-agents
+  - amazon-bedrock
+  - cedar
+  - anomaly-detection
+  - auto-insurance

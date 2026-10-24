@@ -6,9 +6,31 @@ Instead of the traditional request/response MCP model where agents poll for stal
 
 **AI-driven:** an LLM agent (`mcp_streaming/agents/ai_agent.py`) investigates every spike on its own — it calls the server's MCP methods as tools, correlates errors across services, and returns a structured diagnosis (severity, root cause, affected services, remediation). You can also chat with it while the stream runs, and the log simulator can let an LLM invent realistic incident scenarios. Providers: **Amazon Bedrock** (default), any **OpenAI-compatible** endpoint (OpenAI, Ollama, vLLM), or an offline **mock**.
 
+## 🍴 Using this project? Fork it
+
+[![Fork on GitHub](https://img.shields.io/github/forks/hakohli/mcp-pulse?style=social&label=Fork)](https://github.com/hakohli/mcp-pulse/fork)
+[![Star on GitHub](https://img.shields.io/github/stars/hakohli/mcp-pulse?style=social)](https://github.com/hakohli/mcp-pulse)
+
+Please **[fork this repository](https://github.com/hakohli/mcp-pulse/fork)** rather than downloading a ZIP or copying files. A fork:
+
+- **stays connected** — pull in new features, use cases and fixes with one click (*Sync fork*)
+- **keeps the history and credit** — your work is visibly built on this project
+- **lets you contribute back** — open a pull request from your fork to share improvements
+
+```bash
+# 1. Click "Fork" (top right) — or with the GitHub CLI:
+gh repo fork hakohli/mcp-pulse --clone        # creates your fork, clones it, sets "upstream"
+
+# 2. Later, pull in upstream updates
+gh repo sync <your-user>/mcp-pulse            # or the "Sync fork" button on GitHub
+git pull
+```
+
+Want an industry edition such as [auto insurance](use-cases/auto-insurance/)? It's already in your fork under `use-cases/`. To also get its `usecase/*` branch, untick **"Copy the main branch only"** when forking. See [CONTRIBUTING.md](CONTRIBUTING.md) to contribute, and use **"Cite this repository"** (sidebar) if you reference it in your work.
+
 ## Contents
 
-- [Architecture](#architecture) · [What You'll See](#what-youll-see) · [Why This Matters](#why-this-matters) · [**Use Cases**](#use-cases)
+- [Fork it](#-using-this-project-fork-it) · [Architecture](#architecture) · [What You'll See](#what-youll-see) · [Why This Matters](#why-this-matters) · [**Use Cases**](#use-cases)
 - [Project Structure](#project-structure) · [Quick Start](#quick-start--one-command-no-docker) · [Prerequisites](#prerequisites) · [Configure the LLM](#configure-the-llm)
 - [Full Setup](#full-setup--real-kafka-separate-terminals) · [Tests](#tests) · [Environment Variables](#environment-variables) · [Troubleshooting](#troubleshooting)
 - [Key Patterns](#key-patterns-demonstrated) · [Cedar & Auth](#cedar-server-and-authentication) · [FAQ](docs/FAQ.md) · [Teardown](#teardown)
@@ -146,6 +168,8 @@ Keep the folders identical to their branches with `make check-use-cases` / `make
 ```
 mcp-pulse/
 ├── README.md                  ← you are here
+├── CONTRIBUTING.md            ← fork → branch → test → pull request
+├── CITATION.cff               ← powers GitHub's "Cite this repository"
 ├── Makefile                   ← short commands: `make help`
 ├── requirements.txt           ← pinned Python dependencies
 ├── docker-compose.yml         ← single-node Kafka (KRaft), published on 127.0.0.1:9092
@@ -189,6 +213,8 @@ All commands run **from the repository root**. Modules are started with `python 
 ## Quick Start — one command, no Docker
 
 ```bash
+gh repo fork hakohli/mcp-pulse --clone && cd mcp-pulse   # fork + clone (see "Fork it" above)
+
 make install                 # creates .venv and installs requirements.txt
 source .venv/bin/activate
 
