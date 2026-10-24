@@ -1,7 +1,7 @@
 """
 Build the auto-insurance edition of the deck.
 
-Starts from the generic deck (template/MCP_Live_Streaming_Context.pptx), rewrites
+Starts from the generic deck (template/MCP_Pulse_Streaming_Context.pptx), rewrites
 every slide for the auto-insurance use case, swaps in insurance diagrams
 (diagrams.py) and inserts five new slides. The scenario table is generated from
 mcp_streaming.domain.auto_insurance so the deck always matches the demo.
@@ -27,8 +27,8 @@ sys.path.insert(0, HERE)
 import diagrams  # noqa: E402
 from mcp_streaming.domain import auto_insurance as domain  # noqa: E402
 
-TEMPLATE = os.path.join(HERE, "template", "MCP_Live_Streaming_Context.pptx")
-OUTPUT = os.path.join(HERE, "MCP_Live_Auto_Insurance.pptx")
+TEMPLATE = os.path.join(HERE, "template", "MCP_Pulse_Streaming_Context.pptx")
+OUTPUT = os.path.join(HERE, "MCP_Pulse_Auto_Insurance.pptx")
 
 NAVY = RGBColor(0x2A, 0x2A, 0x4A)
 TEAL = RGBColor(0x00, 0xD4, 0xAA)
@@ -164,12 +164,12 @@ def build():
     s = list(prs.slides)  # original 13 slides, by position
 
     # 1 — Title
-    set_lines(title_of(s[0]), ["MCP Live for Auto Insurance", "Streaming Claims Context", "to AI Agents"], size=30)
+    set_lines(title_of(s[0]), ["MCP Pulse for Auto Insurance", "Streaming Claims Context", "to AI Agents"], size=30)
     for p in title_of(s[0]).text_frame.paragraphs:
         p.space_after = Pt(0)
     set_lines(body_placeholders(s[0])[0], [
         "Real-time FNOL, fraud & platform-incident intelligence with Kafka, WebSockets, Cedar & LLMs",
-        "github.com/hakohli/mcp-streaming-demo  ·  branch: usecase/auto-insurance"], size=14)
+        "github.com/hakohli/mcp-pulse  ·  branch: usecase/auto-insurance"], size=14)
     notes(s[0], "Auto-insurance edition: the same streaming-MCP pattern, applied to an insurer's claims and "
                 "telematics platform. All data in the demo is synthetic.")
 
@@ -281,7 +281,7 @@ def build():
 
     # 13 — Thank you
     set_lines(body_placeholders(s[12])[0], [
-        "github.com/hakohli/mcp-streaming-demo  ·  branch: usecase/auto-insurance",
+        "github.com/hakohli/mcp-pulse  ·  branch: usecase/auto-insurance",
         "Synthetic data only  ·  Kafka · Cedar · WebSockets · LLMs"], size=14)
 
     # ---- New slides (inserted after "Anomaly Detection", position index 9..13) ----
