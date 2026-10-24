@@ -10,9 +10,24 @@ A working demo of **streaming MCP (Model Context Protocol)** for an auto insurer
 
 Providers: **Amazon Bedrock** (default), any **OpenAI-compatible** endpoint (OpenAI, Ollama, vLLM), or an offline **mock**. All data is synthetic.
 
+## 🍴 Using this project? Fork it
+
+[![Fork on GitHub](https://img.shields.io/github/forks/hakohli/mcp-pulse?style=social&label=Fork)](https://github.com/hakohli/mcp-pulse/fork)
+[![Star on GitHub](https://img.shields.io/github/stars/hakohli/mcp-pulse?style=social)](https://github.com/hakohli/mcp-pulse)
+
+Please **[fork the repository](https://github.com/hakohli/mcp-pulse/fork)** rather than downloading a ZIP or copying files — your fork stays connected to updates (*Sync fork*), keeps the history and credit, and lets you contribute improvements back with a pull request.
+
+```bash
+gh repo fork hakohli/mcp-pulse --clone && cd mcp-pulse
+cd use-cases/auto-insurance          # this edition, on main
+# or: git checkout usecase/auto-insurance   (untick "Copy the main branch only" when forking)
+```
+
+See [CONTRIBUTING.md](https://github.com/hakohli/mcp-pulse/blob/main/CONTRIBUTING.md) to contribute, and use **"Cite this repository"** on the repo page if you reference it.
+
 ## Contents
 
-- [The Auto Insurance Use Case](#the-auto-insurance-use-case) · [Architecture](#architecture) · [What You'll See](#what-youll-see) · [Why It Matters for Auto Insurers](#why-it-matters-for-auto-insurers)
+- [Fork it](#-using-this-project-fork-it) · [The Auto Insurance Use Case](#the-auto-insurance-use-case) · [Architecture](#architecture) · [What You'll See](#what-youll-see) · [Why It Matters for Auto Insurers](#why-it-matters-for-auto-insurers)
 - [Project Structure](#project-structure) · [Quick Start](#quick-start--one-command-no-docker) · [Prerequisites](#prerequisites) · [Configure the LLM](#configure-the-llm)
 - [Full Setup](#full-setup--real-kafka-separate-terminals) · [Tests](#tests) · [Environment Variables](#environment-variables) · [Troubleshooting](#troubleshooting)
 - [Key Patterns](#key-patterns-demonstrated) · [Cedar Roles & Auth](#cedar-roles-and-authentication) · [Governance](#governance-privacy-and-compliance) · [Slide Deck](#slide-deck) · [FAQ](docs/FAQ.md)
