@@ -8,7 +8,7 @@ Instead of the traditional request/response MCP model where agents poll for stal
 
 ## Contents
 
-- [Architecture](#architecture) · [What You'll See](#what-youll-see) · [Why This Matters](#why-this-matters)
+- [Architecture](#architecture) · [What You'll See](#what-youll-see) · [Why This Matters](#why-this-matters) · [**Use Cases**](#use-cases)
 - [Project Structure](#project-structure) · [Quick Start](#quick-start--one-command-no-docker) · [Prerequisites](#prerequisites) · [Configure the LLM](#configure-the-llm)
 - [Full Setup](#full-setup--real-kafka-separate-terminals) · [Tests](#tests) · [Environment Variables](#environment-variables) · [Troubleshooting](#troubleshooting)
 - [Key Patterns](#key-patterns-demonstrated) · [Cedar & Auth](#cedar-server-and-authentication) · [FAQ](docs/FAQ.md) · [Teardown](#teardown)
@@ -102,7 +102,7 @@ This project shows a different pattern: **streaming context into an LLM agent**,
 | Sector | Example streaming sources | What an AI streaming agent can do |
 |--------|---------------------------|-----------------------------------|
 | **Automotive & connected vehicles** | Vehicle telemetry (CAN bus, OBD-II), OTA update logs, EV charging networks, factory line sensors | Detect fleet-wide fault patterns after an OTA release and recommend a rollback; diagnose charging-station outages; flag predictive-maintenance issues before breakdowns |
-| **Auto insurance** | Telematics / usage-based-insurance (UBI) feeds, crash-detection events, first-notice-of-loss (FNOL) intake, claims systems | Trigger instant FNOL from crash telemetry; spot staged-accident or claims-fraud patterns as they emerge; monitor UBI pipelines so pricing data isn't silently lost |
+| **Auto insurance** — [implemented ↗](use-cases/auto-insurance/) | Telematics / usage-based-insurance (UBI) feeds, crash-detection events, first-notice-of-loss (FNOL) intake, claims systems | Trigger instant FNOL from crash telemetry; spot staged-accident or claims-fraud patterns as they emerge; monitor UBI pipelines so pricing data isn't silently lost |
 | **Health insurance** | Claims adjudication streams, eligibility/prior-authorization APIs, provider network systems, member portals | Detect claims-processing backlogs or denial-rate spikes in real time; flag anomalous billing patterns (upcoding, duplicate claims) for investigators; keep prior-auth systems within regulatory turnaround times |
 | **Healthcare & life sciences** | Patient monitoring devices, EHR integration (HL7/FHIR) feeds, lab systems, pharmacy and supply systems | Catch failed HL7/FHIR interfaces before results go missing; correlate device alarms; monitor cold-chain for vaccines and biologics — with a human always in the loop for clinical decisions |
 | **Banking & financial services** | Payment rails, card authorizations, trading platforms, core-banking logs, market data | Detect payment failures or authorization-decline spikes within seconds; real-time fraud and AML signal triage; diagnose trading-system latency before it affects order execution |
@@ -124,6 +124,22 @@ This repository is a **reference implementation and demo**, not a production sys
 - **Human-in-the-loop approval** for any action that changes systems; the agent here is deliberately read-only.
 - **Evaluation and observability** for the LLM itself: track diagnosis accuracy, false positives, latency, and cost.
 - **Model choice that fits your data boundaries** — managed (Amazon Bedrock), API-based, or self-hosted (Ollama/vLLM) for fully on-premises operation.
+
+## Use Cases
+
+Industry editions of this demo live in [`use-cases/`](use-cases/). Each is a complete, self-contained project (its own code, tests, docs, deck and `Makefile`) developed on its own branch and mirrored here.
+
+| Use case | Folder | Branch | Highlights |
+|----------|--------|--------|------------|
+| 🚗 **Auto insurance** | [`use-cases/auto-insurance/`](use-cases/auto-insurance/) | [`usecase/auto-insurance`](https://github.com/hakohli/mcp-streaming-demo/tree/usecase/auto-insurance) | Claims & telematics platform (telematics, FNOL, coverage, fraud, payouts); 7 incident scenarios with runbooks; diagnosis with business impact and owning team; PII redaction; insurance Cedar roles; 18-slide deck |
+
+```bash
+cd use-cases/auto-insurance
+make install && source .venv/bin/activate
+make demo-offline                                   # or: make demo-scenario SCENARIO=staged_accident_ring
+```
+
+See [`use-cases/README.md`](use-cases/README.md) for how the folders are maintained and how to add a new use case.
 
 ## Project Structure
 
@@ -155,10 +171,14 @@ mcp-streaming-demo/
 │   ├── test_ai_agent.py       ← LLM layer + agent (mock LLM, fake Bedrock/OpenAI transports)
 │   └── test_integration.py    ← Cedar server + mock Kafka over real WebSockets
 │
-└── docs/
-    ├── FAQ.md                 ← 35 questions: basics, architecture, LLM, scaling, security
-    └── presentation/
-        └── MCP_Live_Streaming_Context.pptx
+├── docs/
+│   ├── FAQ.md                 ← 35 questions: basics, architecture, LLM, scaling, security
+│   └── presentation/
+│       └── MCP_Live_Streaming_Context.pptx
+│
+└── use-cases/                 ← industry editions (self-contained projects)
+    ├── README.md              ← index + how to add a use case
+    └── auto-insurance/        ← claims & telematics edition (mirrors branch usecase/auto-insurance)
 ```
 
 All commands run **from the repository root**. Modules are started with `python -m mcp_streaming.<area>.<module>`; every one also has a `make` shortcut.
@@ -330,6 +350,7 @@ To see the policy decisions on their own: `python -m mcp_streaming.server.cedar_
 
 ## More Documentation
 
+- [use-cases/](use-cases/) — industry editions, starting with [auto insurance](use-cases/auto-insurance/)
 - [docs/FAQ.md](docs/FAQ.md) — 35 questions covering basics, architecture, the LLM integration, scaling, failure modes and security
 - [docs/presentation/MCP_Live_Streaming_Context.pptx](docs/presentation/MCP_Live_Streaming_Context.pptx) — slide deck
 
