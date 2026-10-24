@@ -169,7 +169,7 @@ def build():
         p.space_after = Pt(0)
     set_lines(body_placeholders(s[0])[0], [
         "Real-time FNOL, fraud & platform-incident intelligence with Kafka, WebSockets, Cedar & LLMs",
-        "github.com/hakohli/mcp-pulse  ·  branch: usecase/auto-insurance"], size=14)
+        "github.com/kohli6/mcp-pulse  ·  branch: usecase/auto-insurance"], size=14)
     notes(s[0], "Auto-insurance edition: the same streaming-MCP pattern, applied to an insurer's claims and "
                 "telematics platform. All data in the demo is synthetic.")
 
@@ -281,7 +281,7 @@ def build():
 
     # 13 — Thank you
     set_lines(body_placeholders(s[12])[0], [
-        "github.com/hakohli/mcp-pulse  ·  branch: usecase/auto-insurance",
+        "github.com/kohli6/mcp-pulse  ·  branch: usecase/auto-insurance",
         "Synthetic data only  ·  Kafka · Cedar · WebSockets · LLMs"], size=14)
 
     # ---- New slides (inserted after "Anomaly Detection", position index 9..13) ----

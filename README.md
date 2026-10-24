@@ -1,10 +1,10 @@
 # MCP Pulse for Auto Insurance: Streaming Claims & Telematics Context to AI Agents
 
-> **Auto-insurance edition** of [mcp-pulse](https://github.com/hakohli/mcp-pulse), published in two places with identical content:
-> - branch [`usecase/auto-insurance`](https://github.com/hakohli/mcp-pulse/tree/usecase/auto-insurance) — the source of truth, at the repository root
-> - folder [`use-cases/auto-insurance/`](https://github.com/hakohli/mcp-pulse/tree/main/use-cases/auto-insurance) on `main` — a self-contained copy
+> **Auto-insurance edition** of [mcp-pulse](https://github.com/kohli6/mcp-pulse), published in two places with identical content:
+> - branch [`usecase/auto-insurance`](https://github.com/kohli6/mcp-pulse/tree/usecase/auto-insurance) — the source of truth, at the repository root
+> - folder [`use-cases/auto-insurance/`](https://github.com/kohli6/mcp-pulse/tree/main/use-cases/auto-insurance) on `main` — a self-contained copy
 >
-> The domain-neutral version (and the cross-industry overview) is at the root of [`main`](https://github.com/hakohli/mcp-pulse/tree/main).
+> The domain-neutral version (and the cross-industry overview) is at the root of [`main`](https://github.com/kohli6/mcp-pulse/tree/main).
 
 A working demo of **streaming MCP (Model Context Protocol)** for an auto insurer: live events from telematics, First Notice of Loss (FNOL), policy, claims, fraud-scoring and payments services are pushed through Kafka and WebSockets to an **LLM-driven operations agent**. When something goes wrong, the agent detects it in under a second and, within seconds, tells you the **root cause, the business impact on policyholders and claims SLAs, which team owns it, and what to do next** — while redacting PII and leaving every claim, coverage and fraud decision to people.
 
@@ -12,18 +12,18 @@ Providers: **Amazon Bedrock** (default), any **OpenAI-compatible** endpoint (Ope
 
 ## 🍴 Using this project? Fork it
 
-[![Fork on GitHub](https://img.shields.io/github/forks/hakohli/mcp-pulse?style=social&label=Fork)](https://github.com/hakohli/mcp-pulse/fork)
-[![Star on GitHub](https://img.shields.io/github/stars/hakohli/mcp-pulse?style=social)](https://github.com/hakohli/mcp-pulse)
+[![Fork on GitHub](https://img.shields.io/github/forks/kohli6/mcp-pulse?style=social&label=Fork)](https://github.com/kohli6/mcp-pulse/fork)
+[![Star on GitHub](https://img.shields.io/github/stars/kohli6/mcp-pulse?style=social)](https://github.com/kohli6/mcp-pulse)
 
-Please **[fork the repository](https://github.com/hakohli/mcp-pulse/fork)** rather than downloading a ZIP or copying files — your fork stays connected to updates (*Sync fork*), keeps the history and credit, and lets you contribute improvements back with a pull request.
+Please **[fork the repository](https://github.com/kohli6/mcp-pulse/fork)** rather than downloading a ZIP or copying files — your fork stays connected to updates (*Sync fork*), keeps the history and credit, and lets you contribute improvements back with a pull request.
 
 ```bash
-gh repo fork hakohli/mcp-pulse --clone && cd mcp-pulse
+gh repo fork kohli6/mcp-pulse --clone && cd mcp-pulse
 cd use-cases/auto-insurance          # this edition, on main
 # or: git checkout usecase/auto-insurance   (untick "Copy the main branch only" when forking)
 ```
 
-See [CONTRIBUTING.md](https://github.com/hakohli/mcp-pulse/blob/main/CONTRIBUTING.md) to contribute, and use **"Cite this repository"** on the repo page if you reference it.
+See [CONTRIBUTING.md](https://github.com/kohli6/mcp-pulse/blob/main/CONTRIBUTING.md) to contribute, and use **"Cite this repository"** on the repo page if you reference it.
 
 ## Contents
 
@@ -434,7 +434,7 @@ make deck            # = python docs/presentation/build_deck.py
 ## More Documentation
 
 - [docs/FAQ.md](docs/FAQ.md) — 40 questions, including an auto-insurance section
-- [`main` branch](https://github.com/hakohli/mcp-pulse/tree/main) — the domain-neutral version and the cross-industry "Why This Matters" overview
+- [`main` branch](https://github.com/kohli6/mcp-pulse/tree/main) — the domain-neutral version and the cross-industry "Why This Matters" overview
 
 ## Teardown
 
