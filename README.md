@@ -14,6 +14,7 @@ Providers: **Amazon Bedrock** (default), any **OpenAI-compatible** endpoint (Ope
 
 [![Fork on GitHub](https://img.shields.io/github/forks/kohli6/mcp-pulse?style=social&label=Fork)](https://github.com/kohli6/mcp-pulse/fork)
 [![Star on GitHub](https://img.shields.io/github/stars/kohli6/mcp-pulse?style=social)](https://github.com/kohli6/mcp-pulse)
+[![License: Apache-2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
 
 Please **[fork the repository](https://github.com/kohli6/mcp-pulse/fork)** rather than downloading a ZIP or copying files — your fork stays connected to updates (*Sync fork*), keeps the history and credit, and lets you contribute improvements back with a pull request.
 
@@ -199,6 +200,8 @@ These are qualitative benefits; measure your own baseline (time to detect, cycle
 ```
 <project root>/                ← repo root on the branch · use-cases/auto-insurance/ on main
 ├── README.md                  ← you are here
+├── LICENSE                    ← Apache License 2.0
+├── NOTICE                     ← copyright + attribution (keep it when redistributing)
 ├── Makefile                   ← short commands: `make help`
 ├── requirements.txt           ← pinned runtime dependencies
 ├── requirements-docs.txt      ← extra dependencies to rebuild the slide deck
@@ -448,4 +451,8 @@ make kafka-down              # or: docker compose down -v
 
 ## License
 
-All open source: Apache Kafka, Cedar, WebSockets, Python. LLM providers (Amazon Bedrock, OpenAI, Ollama) are used under their own terms. All insurance data in this repository is synthetic.
+**Apache License 2.0** — see [LICENSE](LICENSE) and [NOTICE](NOTICE).
+
+You may use, modify and redistribute this project, including commercially. If you redistribute it or a derivative, keep the `LICENSE` and `NOTICE` files and mark files you changed (Apache-2.0 §4). The easiest way to do that — and to keep receiving updates — is to [fork the repository](https://github.com/kohli6/mcp-pulse/fork).
+
+Dependencies (Apache Kafka, Cedar, websockets, boto3 …) are under their own licenses; LLM providers (Amazon Bedrock, OpenAI, Ollama) are used under their own terms. All insurance data in this repository is synthetic.
