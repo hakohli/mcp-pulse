@@ -8,10 +8,10 @@ Instead of the traditional request/response MCP model where agents poll for stal
 
 ## 🍴 Using this project? Fork it
 
-[![Fork on GitHub](https://img.shields.io/github/forks/hakohli/mcp-pulse?style=social&label=Fork)](https://github.com/hakohli/mcp-pulse/fork)
-[![Star on GitHub](https://img.shields.io/github/stars/hakohli/mcp-pulse?style=social)](https://github.com/hakohli/mcp-pulse)
+[![Fork on GitHub](https://img.shields.io/github/forks/kohli6/mcp-pulse?style=social&label=Fork)](https://github.com/kohli6/mcp-pulse/fork)
+[![Star on GitHub](https://img.shields.io/github/stars/kohli6/mcp-pulse?style=social)](https://github.com/kohli6/mcp-pulse)
 
-Please **[fork this repository](https://github.com/hakohli/mcp-pulse/fork)** rather than downloading a ZIP or copying files. A fork:
+Please **[fork this repository](https://github.com/kohli6/mcp-pulse/fork)** rather than downloading a ZIP or copying files. A fork:
 
 - **stays connected** — pull in new features, use cases and fixes with one click (*Sync fork*)
 - **keeps the history and credit** — your work is visibly built on this project
@@ -19,7 +19,7 @@ Please **[fork this repository](https://github.com/hakohli/mcp-pulse/fork)** rat
 
 ```bash
 # 1. Click "Fork" (top right) — or with the GitHub CLI:
-gh repo fork hakohli/mcp-pulse --clone        # creates your fork, clones it, sets "upstream"
+gh repo fork kohli6/mcp-pulse --clone        # creates your fork, clones it, sets "upstream"
 
 # 2. Later, pull in upstream updates
 gh repo sync <your-user>/mcp-pulse            # or the "Sync fork" button on GitHub
@@ -153,7 +153,7 @@ Industry editions of this demo live in [`use-cases/`](use-cases/). Each is a com
 
 | Use case | Folder | Branch | Highlights |
 |----------|--------|--------|------------|
-| 🚗 **Auto insurance** | [`use-cases/auto-insurance/`](use-cases/auto-insurance/) | [`usecase/auto-insurance`](https://github.com/hakohli/mcp-pulse/tree/usecase/auto-insurance) | Claims & telematics platform (telematics, FNOL, coverage, fraud, payouts); 7 incident scenarios with runbooks; diagnosis with business impact and owning team; PII redaction; insurance Cedar roles; 18-slide deck |
+| 🚗 **Auto insurance** | [`use-cases/auto-insurance/`](use-cases/auto-insurance/) | [`usecase/auto-insurance`](https://github.com/kohli6/mcp-pulse/tree/usecase/auto-insurance) | Claims & telematics platform (telematics, FNOL, coverage, fraud, payouts); 7 incident scenarios with runbooks; diagnosis with business impact and owning team; PII redaction; insurance Cedar roles; 18-slide deck |
 
 ```bash
 cd use-cases/auto-insurance
@@ -213,7 +213,7 @@ All commands run **from the repository root**. Modules are started with `python 
 ## Quick Start — one command, no Docker
 
 ```bash
-gh repo fork hakohli/mcp-pulse --clone && cd mcp-pulse   # fork + clone (see "Fork it" above)
+gh repo fork kohli6/mcp-pulse --clone && cd mcp-pulse   # fork + clone (see "Fork it" above)
 
 make install                 # creates .venv and installs requirements.txt
 source .venv/bin/activate
