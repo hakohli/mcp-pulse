@@ -38,6 +38,10 @@ Each use case lives on its own branch `usecase/<name>` (the source of truth) and
 - After a use-case PR merges, the maintainer refreshes the folder with `make sync-use-cases`; `make check-use-cases` verifies it.
 - Proposing a new industry? Open an issue first, then follow *Adding a new use case* in [use-cases/README.md](use-cases/README.md).
 
+## License of contributions
+
+By submitting a pull request you agree that your contribution is licensed under the project's [Apache License 2.0](LICENSE) (see Section 5 of the license).
+
 ## Questions and ideas
 
 Open a [GitHub issue](https://github.com/kohli6/mcp-pulse/issues) — bug reports, questions and use-case ideas are all welcome.

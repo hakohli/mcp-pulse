@@ -14,6 +14,7 @@ authors:
 repository-code: "https://github.com/kohli6/mcp-pulse"
 url: "https://github.com/kohli6/mcp-pulse"
 version: 0.2.0
+license: Apache-2.0
 keywords:
   - model-context-protocol
   - mcp

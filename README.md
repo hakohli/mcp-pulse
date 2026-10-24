@@ -10,6 +10,7 @@ Instead of the traditional request/response MCP model where agents poll for stal
 
 [![Fork on GitHub](https://img.shields.io/github/forks/kohli6/mcp-pulse?style=social&label=Fork)](https://github.com/kohli6/mcp-pulse/fork)
 [![Star on GitHub](https://img.shields.io/github/stars/kohli6/mcp-pulse?style=social)](https://github.com/kohli6/mcp-pulse)
+[![License: Apache-2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
 
 Please **[fork this repository](https://github.com/kohli6/mcp-pulse/fork)** rather than downloading a ZIP or copying files. A fork:
 
@@ -168,6 +169,8 @@ Keep the folders identical to their branches with `make check-use-cases` / `make
 ```
 mcp-pulse/
 ├── README.md                  ← you are here
+├── LICENSE                    ← Apache License 2.0
+├── NOTICE                     ← copyright + attribution (keep it when redistributing)
 ├── CONTRIBUTING.md            ← fork → branch → test → pull request
 ├── CITATION.cff               ← powers GitHub's "Cite this repository"
 ├── Makefile                   ← short commands: `make help`
@@ -395,4 +398,8 @@ make kafka-down              # or: docker compose down -v
 
 ## License
 
-All open source: Apache Kafka, Cedar, WebSockets, Python. LLM providers (Amazon Bedrock, OpenAI, Ollama) are used under their own terms.
+**Apache License 2.0** — see [LICENSE](LICENSE) and [NOTICE](NOTICE).
+
+You may use, modify and redistribute this project, including commercially. If you redistribute it or a derivative, keep the `LICENSE` and `NOTICE` files and mark files you changed (Apache-2.0 §4). The easiest way to do that — and to keep receiving updates — is to [fork the repository](https://github.com/kohli6/mcp-pulse/fork).
+
+Dependencies (Apache Kafka, Cedar, websockets, boto3 …) are under their own licenses; LLM providers (Amazon Bedrock, OpenAI, Ollama) are used under their own terms.
