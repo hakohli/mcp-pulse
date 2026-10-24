@@ -24,15 +24,17 @@ See [`auto-insurance/README.md`](auto-insurance/README.md) for the full guide.
 
 ## How the folders are maintained
 
-Each use case is developed on its own branch (`usecase/<name>`), which is the source of truth. The folder here is an exact copy of that branch, refreshed with:
+Each use case is developed on its own branch (`usecase/<name>`), which is the source of truth. The folder here is an exact copy of that branch. From the repository root, on `main`:
 
 ```bash
-# from the repository root, on main
-rm -rf use-cases/auto-insurance && mkdir -p use-cases/auto-insurance
-git archive usecase/auto-insurance | tar -x -C use-cases/auto-insurance
+make check-use-cases     # ✓ in sync / ✗ lists differing files (exit 1 on drift)
+make sync-use-cases      # refresh every folder from its branch, then review and commit
+scripts/sync_use_cases.sh auto-insurance   # refresh just one
 ```
 
-Make changes on the branch first, then refresh the folder, so the two never drift.
+The script fetches `origin`, copies the branch's committed files with `git archive` (nothing untracked), and only touches `use-cases/<name>/`. It never commits or pushes.
+
+Make changes on the branch first, then sync the folder, so the two never drift.
 
 ## Adding a new use case
 

@@ -139,7 +139,7 @@ make install && source .venv/bin/activate
 make demo-offline                                   # or: make demo-scenario SCENARIO=staged_accident_ring
 ```
 
-See [`use-cases/README.md`](use-cases/README.md) for how the folders are maintained and how to add a new use case.
+Keep the folders identical to their branches with `make check-use-cases` / `make sync-use-cases`. See [`use-cases/README.md`](use-cases/README.md) for details and how to add a new use case.
 
 ## Project Structure
 
@@ -175,6 +175,9 @@ mcp-streaming-demo/
 │   ├── FAQ.md                 ← 35 questions: basics, architecture, LLM, scaling, security
 │   └── presentation/
 │       └── MCP_Live_Streaming_Context.pptx
+│
+├── scripts/
+│   └── sync_use_cases.sh      ← keep use-cases/* identical to their usecase/* branches
 │
 └── use-cases/                 ← industry editions (self-contained projects)
     ├── README.md              ← index + how to add a use case
