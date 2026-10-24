@@ -5,11 +5,17 @@ Consumes from Kafka topic 'app-logs', analyzes patterns, streams to subscribers.
 
 import asyncio
 import json
+import os
 import time
 from collections import deque
 from typing import Dict, Optional, Set
-from confluent_kafka import Consumer, Producer, KafkaError
 import websockets
+
+# USE_MOCK_KAFKA=1 swaps in the in-process mock (used by run_demo.py; no Docker needed)
+if os.environ.get("USE_MOCK_KAFKA") == "1":
+    from mock_kafka import Consumer
+else:
+    from confluent_kafka import Consumer
 
 # --- Kafka-backed event stream ---
 
@@ -162,8 +168,12 @@ async def main():
     log_stream = LogStreamConsumer()
     server = StreamingMCPServer(log_stream)
 
-    ws_server = await websockets.serve(server.handle_client, "0.0.0.0", 8765)
-    print("Streaming MCP Server running on ws://localhost:8765")
+    # Loopback by default: this server has no authentication. Set MCP_HOST only
+    # behind a gateway that authenticates callers.
+    host = os.environ.get("MCP_HOST", "127.0.0.1")
+    port = int(os.environ.get("MCP_PORT", "8765"))
+    ws_server = await websockets.serve(server.handle_client, host, port)
+    print(f"Streaming MCP Server running on ws://{host}:{port}")
 
     await asyncio.gather(
         kafka_poll_loop(log_stream),

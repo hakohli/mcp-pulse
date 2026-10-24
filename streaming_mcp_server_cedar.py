@@ -78,6 +78,28 @@ class LogStreamConsumer:
         self.subscribers.discard(q)
 
 
+def verify_principal(msg):
+    # type: (dict) -> Optional[dict]
+    """
+    Turn an `auth` message into a *verified* principal, or None to reject.
+
+    FAIL-CLOSED STUB: no real verifier is wired, so every credential is rejected
+    and the connection stays the anonymous "viewer" principal. Roles must come
+    from a credential the server can verify (e.g. a JWT validated against your
+    identity provider's JWKS, with the role taken from its claims) — never from
+    what the client asserts about itself.
+
+    MCP_AUTH_TEST_BYPASS=1 accepts the client-asserted principal. It exists only
+    for local demos/tests against a loopback-bound server.
+    """
+    if os.environ.get("MCP_AUTH_TEST_BYPASS") != "1":
+        return None
+    p = msg.get("principal")
+    if not isinstance(p, dict) or not isinstance(p.get("id"), str) or not isinstance(p.get("role"), str):
+        return None
+    return {"id": p["id"], "role": p["role"]}
+
+
 class StreamingMCPServer:
     def __init__(self, log_stream):
         self.log_stream = log_stream
@@ -93,7 +115,14 @@ class StreamingMCPServer:
                 method = msg.get("method")
 
                 if method == "auth":
-                    principal = msg.get("principal", principal)
+                    verified = verify_principal(msg)
+                    if verified is None:
+                        await ws.send(json.dumps({
+                            "type": "error", "code": "UNAUTHENTICATED",
+                            "message": "credential could not be verified; no verifier is configured",
+                        }))
+                        continue
+                    principal = verified
                     await ws.send(json.dumps({"type": "authenticated", "principal": principal}))
                     continue
 
@@ -156,8 +185,10 @@ async def kafka_poll_loop(log_stream):
 async def main():
     log_stream = LogStreamConsumer()
     server = StreamingMCPServer(log_stream)
-    ws_server = await websockets.serve(server.handle_client, "0.0.0.0", 8765)
-    print("Streaming MCP Server (Cedar-authorized) on ws://localhost:8765")
+    host = os.environ.get("MCP_HOST", "127.0.0.1")  # loopback by default
+    port = int(os.environ.get("MCP_PORT", "8765"))
+    ws_server = await websockets.serve(server.handle_client, host, port)
+    print(f"Streaming MCP Server (Cedar-authorized) on ws://{host}:{port}")
     await asyncio.gather(kafka_poll_loop(log_stream), ws_server.wait_closed())
 
 if __name__ == "__main__":
