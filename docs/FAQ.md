@@ -16,7 +16,7 @@ Standard MCP is pull-based: agents ask for context and get a static snapshot. In
 ## Architecture
 
 **4. What's the data flow?**
-`log_simulator.py` → Kafka (`app-logs` topic) → `streaming_mcp_server.py` → WebSocket → `ai_agent.py` ⇄ LLM
+`simulator/log_simulator.py` → Kafka (`app-logs` topic) → `server/streaming_mcp_server.py` → WebSocket → `agents/ai_agent.py` ⇄ LLM  (all under `mcp_streaming/`)
 
 The LLM never talks to Kafka or the server directly — the agent exposes the server's MCP methods (`get_anomalies`, `get_context`) to the model as tools, and executes the model's tool calls over the same WebSocket.
 
@@ -46,7 +46,7 @@ Cedar is a policy language (created by AWS) for fine-grained authorization. The 
 - Default deny — if no policy matches, access is denied
 
 **10. Is the Cedar integration production-ready?**
-No. `cedar_authz.py` is a lightweight regex-based parser for demo purposes. In production, you'd use the official `cedarpy` SDK or the Cedar service for policy evaluation.
+No. `mcp_streaming/server/cedar_authz.py` is a lightweight regex-based parser for demo purposes. In production, you'd use the official `cedarpy` SDK or the Cedar service for policy evaluation.
 
 ---
 
@@ -56,18 +56,21 @@ No. `cedar_authz.py` is a lightweight regex-based parser for demo purposes. In p
 Python 3.9+ and `pip install -r requirements.txt`. Docker is only needed for the full real-Kafka setup. For real AI diagnoses you need one LLM provider: Amazon Bedrock (AWS credentials + model access), an OpenAI-compatible API, or a local Ollama. `--provider mock` runs with no LLM at all.
 
 **12. Do I need a real Kafka cluster?**
-No. `python run_demo.py` runs everything in one process on `mock_kafka.py`, an in-process drop-in replacement. For the full multi-process demo, a single-node Kafka runs via `docker compose up -d` (Confluent cp-kafka 7.6.0 in KRaft mode, no ZooKeeper), published on `127.0.0.1:9092` only.
+No. `make demo` (or `python -m mcp_streaming.demo`) runs everything in one process on `mcp_streaming/messaging/mock_kafka.py`, an in-process drop-in replacement. For the full multi-process demo, a single-node Kafka runs via `make kafka-up` / `docker compose up -d` (Confluent cp-kafka 7.6.0 in KRaft mode, no ZooKeeper), published on `127.0.0.1:9092` only.
 
 **13. Which agent should I run?**
-- `ai_agent.py` — the LLM agent. Autonomous spike investigation; add `--interactive` to ask it questions in plain English mid-stream.
-- `agent_client.py` — rule-based baseline (static error → fix lookup). No LLM, no user input.
-- `agent_client_interactive.py` — rule-based baseline with typed commands (`anomalies`, `context`, `status`, `help`, `quit`).
+- `mcp_streaming/agents/ai_agent.py` (`make agent` / `make agent-chat`) — the LLM agent. Autonomous spike investigation; add `--interactive` to ask it questions in plain English mid-stream.
+- `mcp_streaming/agents/agent_client.py` — rule-based baseline (static error → fix lookup). No LLM, no user input.
+- `mcp_streaming/agents/agent_client_interactive.py` — rule-based baseline with typed commands (`anomalies`, `context`, `status`, `help`, `quit`).
 
 **14. Output looks delayed/buffered — what do I do?**
-Run with `PYTHONUNBUFFERED=1 python ai_agent.py` (or any other script) to disable Python's output buffering.
+Prefix the command with `PYTHONUNBUFFERED=1` (e.g. `PYTHONUNBUFFERED=1 python -m mcp_streaming.agents.ai_agent`) to disable Python's output buffering. The `make` targets already set it.
 
 **15. How do I run everything in one terminal?**
-`python run_demo.py` — server, simulator and agent in a single process. For the real-Kafka setup, use the tmux one-liner from the README (three panes: server, simulator, agent).
+`make demo` — server, simulator and agent in a single process. For the real-Kafka setup, use the tmux one-liner from the README (three panes: server, simulator, agent).
+
+**15b. Where does everything live, and how do I run a single component?**
+All code is in the `mcp_streaming/` package, grouped by role: `server/` (MCP servers + Cedar), `agents/` (LLM agent + rule-based baselines), `llm/` (providers), `simulator/` (log producer), `messaging/` (mock Kafka). Tests are in `tests/`, docs in `docs/`. Run any component from the repository root with `python -m mcp_streaming.<folder>.<module>`, or use the matching `make` target (`make help` lists them). See *Project Structure* in the README.
 
 ---
 
@@ -77,7 +80,7 @@ Run with `PYTHONUNBUFFERED=1 python ai_agent.py` (or any other script) to disabl
 Each subscriber gets a bounded `asyncio.Queue` (max 500 events). If a slow consumer's queue fills up, it's automatically dropped from the subscriber set. This prevents one slow agent from blocking the entire server.
 
 **17. What error patterns does the agent recognize?**
-With a real LLM, any — the model reasons over whatever the logs say, including the novel incidents `log_simulator.py --ai` generates. The rule-based agents and the `mock` provider recognize six patterns with mapped remediation suggestions:
+With a real LLM, any — the model reasons over whatever the logs say, including the novel incidents `make simulator-ai` generates. The rule-based agents and the `mock` provider recognize six patterns with mapped remediation suggestions:
 - `Connection refused` → check service status, security groups
 - `Timeout waiting` → increase timeout, add circuit breaker
 - `OutOfMemoryError` → increase heap, check for leaks
@@ -86,7 +89,7 @@ With a real LLM, any — the model reasons over whatever the logs say, including
 - `Disk usage critical` → clean logs, expand volume
 
 **18. How are error spikes simulated?**
-`log_simulator.py` runs on a 45-second cycle. Between ticks 30–40, it injects 3–6 ERROR events per second (with a 30% chance of a FATAL). Outside that window, it's normal INFO traffic with occasional WARNs. With `--ai`, an LLM pre-generates a causally ordered incident (root-cause service fails first, downstream services follow) ~25s before each spike, and the simulator replays it; if the LLM is unavailable it falls back to the static messages.
+`mcp_streaming/simulator/log_simulator.py` runs on a 45-second cycle. Between ticks 30–40, it injects 3–6 ERROR events per second (with a 30% chance of a FATAL). Outside that window, it's normal INFO traffic with occasional WARNs. With `--ai`, an LLM pre-generates a causally ordered incident (root-cause service fails first, downstream services follow) ~25s before each spike, and the simulator replays it; if the LLM is unavailable it falls back to the static messages.
 
 ---
 
@@ -96,10 +99,10 @@ With a real LLM, any — the model reasons over whatever the logs say, including
 Yes — anything that produces JSON to the `app-logs` Kafka topic will flow through. Match the schema: `{"timestamp", "level", "service", "message", "request_id"}`.
 
 **20. Can I add new Cedar policies?**
-Add policy strings to the `CEDAR_POLICIES` list in `cedar_authz.py`. Use `streaming_mcp_server_cedar.py` (the Cedar-enabled server variant) to enforce them.
+Add policy strings to the `CEDAR_POLICIES` list in `mcp_streaming/server/cedar_authz.py`. Use `mcp_streaming/server/streaming_mcp_server_cedar.py` (`make server-cedar`) to enforce them.
 
 **21. How is the LLM connected?**
-`llm.py` gives every provider the same interface (`create_llm().new_conversation(system, tools).ask(...)`) and runs the tool-calling loop. `ai_agent.py` registers three tools — `get_anomalies`, `get_context` (with level/service/limit filters) and `get_local_stats` — and executes the model's calls over the existing WebSocket. The protocol is unchanged; the server doesn't know an LLM is involved. Switch providers with `LLM_PROVIDER` or `--provider`; add one by subclassing `LLM`/`Conversation` in `llm.py`.
+`mcp_streaming/llm/providers.py` gives every provider the same interface (`create_llm().new_conversation(system, tools).ask(...)`) and runs the tool-calling loop. `mcp_streaming/agents/ai_agent.py` registers three tools — `get_anomalies`, `get_context` (with level/service/limit filters) and `get_local_stats` — and executes the model's calls over the existing WebSocket. The protocol is unchanged; the server doesn't know an LLM is involved. Switch providers with `LLM_PROVIDER` or `--provider`; add one by subclassing `LLM`/`Conversation` in `providers.py` and registering it in `create_llm()`.
 
 **21b. How do I keep LLM costs and latency under control?**
 The LLM is never on the hot path. A cheap local detector decides *when* to call it, `--cooldown` (default 30s) caps the call rate, each diagnosis uses a fresh short conversation, and `get_context` returns at most 100 filtered events. The default Bedrock model is Claude 3.5 Haiku for speed and cost.

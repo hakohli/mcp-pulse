@@ -13,10 +13,10 @@ from typing import Optional, Dict, Set
 if os.environ.get("USE_REAL_KAFKA"):
     from confluent_kafka import Consumer, Producer
 else:
-    from mock_kafka import Consumer, Producer
+    from mcp_streaming.messaging.mock_kafka import Consumer, Producer
 
 import websockets
-from cedar_authz import CedarAuthz
+from mcp_streaming.server.cedar_authz import CedarAuthz
 
 
 class LogStreamConsumer:

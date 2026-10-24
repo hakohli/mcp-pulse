@@ -2,7 +2,7 @@
 Tests for the LLM layer and the AI agent. Fully offline:
 mock Kafka + mock LLM provider + in-process Cedar server on loopback.
 
-  python -m unittest test_ai_agent -v
+  python -m unittest tests.test_ai_agent -v
 """
 
 import asyncio
@@ -14,10 +14,10 @@ os.environ.pop("USE_REAL_KAFKA", None)
 
 import websockets
 
-from ai_agent import AIAgent, MCPConnection, filter_events, format_diagnosis
-from llm import LLMError, Tool, create_llm, extract_json
-from mock_kafka import Producer
-from streaming_mcp_server_cedar import LogStreamConsumer, StreamingMCPServer, kafka_poll_loop, verify_principal
+from mcp_streaming.agents.ai_agent import AIAgent, MCPConnection, filter_events, format_diagnosis
+from mcp_streaming.llm import LLMError, Tool, create_llm, extract_json
+from mcp_streaming.messaging.mock_kafka import Producer
+from mcp_streaming.server.streaming_mcp_server_cedar import LogStreamConsumer, StreamingMCPServer, kafka_poll_loop, verify_principal
 
 producer = Producer({"bootstrap.servers": "unused"})
 
@@ -187,7 +187,7 @@ class ProviderToolLoopTest(unittest.TestCase):
         return {"error_rate": 0.5, "seen": name}
 
     def test_bedrock_tool_round_trip(self):
-        from llm import BedrockLLM
+        from mcp_streaming.llm import BedrockLLM
         calls = []
 
         class FakeClient:
@@ -210,7 +210,7 @@ class ProviderToolLoopTest(unittest.TestCase):
         self.assertEqual(tool_result["content"][0]["json"]["seen"], "get_anomalies")
 
     def test_bedrock_failure_rolls_back_history(self):
-        from llm import BedrockLLM
+        from mcp_streaming.llm import BedrockLLM
 
         class Broken:
             def converse(self, **kw):
@@ -225,7 +225,7 @@ class ProviderToolLoopTest(unittest.TestCase):
         self.assertEqual(conv.messages, [])
 
     def test_openai_tool_round_trip(self):
-        from llm import OpenAICompatLLM
+        from mcp_streaming.llm import OpenAICompatLLM
         llm = OpenAICompatLLM(model="m", base_url="http://127.0.0.1:1/v1", api_key=None)
         payloads = []
 

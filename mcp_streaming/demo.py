@@ -5,10 +5,10 @@ Runs the real streaming MCP server, the log simulator and the LLM agent in a
 single process, connected through the in-process mock Kafka and a loopback
 WebSocket. Same code paths as the multi-terminal setup; only the bus is mocked.
 
-  python run_demo.py                              # Bedrock (default provider)
-  python run_demo.py --provider mock              # fully offline
-  python run_demo.py --interactive --ai           # chat + LLM-generated incidents
-  python run_demo.py --provider mock --duration 40
+  python -m mcp_streaming.demo                               # Bedrock (default provider)
+  python -m mcp_streaming.demo --provider mock               # fully offline
+  python -m mcp_streaming.demo --interactive --ai            # chat + LLM-generated incidents
+  python -m mcp_streaming.demo --provider mock --duration 40
 """
 
 import argparse
@@ -21,10 +21,10 @@ os.environ["USE_MOCK_KAFKA"] = "1"  # must be set before importing server/simula
 
 import websockets  # noqa: E402
 
-import ai_agent  # noqa: E402
-import log_simulator  # noqa: E402
-from llm import LLMError  # noqa: E402
-from streaming_mcp_server import LogStreamConsumer, StreamingMCPServer, kafka_poll_loop  # noqa: E402
+from mcp_streaming.agents import ai_agent  # noqa: E402
+from mcp_streaming.simulator import log_simulator  # noqa: E402
+from mcp_streaming.llm import LLMError  # noqa: E402
+from mcp_streaming.server.streaming_mcp_server import LogStreamConsumer, StreamingMCPServer, kafka_poll_loop  # noqa: E402
 
 
 def parse_args(argv=None):
@@ -89,4 +89,6 @@ if __name__ == "__main__":
         pass
     except LLMError as exc:
         sys.exit(f"LLM setup failed: {exc}")
+    sys.stdout.flush()  # os._exit skips normal interpreter cleanup, including buffer flushes
+    sys.stderr.flush()
     os._exit(0)  # don't wait on the simulator's daemon thread / executor
