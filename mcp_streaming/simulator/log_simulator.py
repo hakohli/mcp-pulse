@@ -2,9 +2,9 @@
 Simulates an application producing log events to Kafka.
 Generates normal traffic with periodic error spikes to demo anomaly detection.
 
-  python log_simulator.py          # static error messages
-  python log_simulator.py --ai     # an LLM invents a fresh, causally-coherent
-                                   # incident scenario for every spike
+  python -m mcp_streaming.simulator.log_simulator          # static error messages
+  python -m mcp_streaming.simulator.log_simulator --ai     # an LLM invents a fresh,
+                                                           # causally-coherent incident per spike
 """
 
 import argparse
@@ -17,9 +17,9 @@ from typing import List, Optional
 
 import os
 
-# USE_MOCK_KAFKA=1 swaps in the in-process mock (used by run_demo.py; no Docker needed)
+# USE_MOCK_KAFKA=1 swaps in the in-process mock (used by mcp_streaming.demo; no Docker needed)
 if os.environ.get("USE_MOCK_KAFKA") == "1":
-    from mock_kafka import Producer
+    from mcp_streaming.messaging.mock_kafka import Producer
 else:
     from confluent_kafka import Producer
 
@@ -72,7 +72,7 @@ class AIScenarioGenerator:
     """Pre-generates LLM incident scenarios in a background thread so the 1s tick never blocks."""
 
     def __init__(self, provider: Optional[str] = None):
-        from llm import create_llm  # imported lazily so the plain simulator needs no LLM deps
+        from mcp_streaming.llm import create_llm  # imported lazily so the plain simulator needs no LLM deps
         self.llm = create_llm(provider)
         self.pool = ThreadPoolExecutor(max_workers=1)
         self.pending: Optional[Future] = None
@@ -97,7 +97,7 @@ class AIScenarioGenerator:
             return []
 
     def _generate(self) -> List[dict]:
-        from llm import extract_json
+        from mcp_streaming.llm import extract_json
 
         async def _ask():
             conv = self.llm.new_conversation(SCENARIO_SYSTEM)

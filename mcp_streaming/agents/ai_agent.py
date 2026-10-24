@@ -10,9 +10,9 @@ LLM-driven AI agent for the Streaming MCP Server.
     the LLM pulls live context through the same tools to answer.
 
 Usage:
-  LLM_PROVIDER=bedrock python ai_agent.py                 # autonomous monitor
-  LLM_PROVIDER=bedrock python ai_agent.py --interactive   # chat + monitor
-  LLM_PROVIDER=mock    python ai_agent.py                 # offline, no LLM
+  LLM_PROVIDER=bedrock python -m mcp_streaming.agents.ai_agent                 # autonomous monitor
+  LLM_PROVIDER=bedrock python -m mcp_streaming.agents.ai_agent --interactive   # chat + monitor
+  LLM_PROVIDER=mock    python -m mcp_streaming.agents.ai_agent                 # offline, no LLM
 """
 
 import argparse
@@ -25,7 +25,7 @@ from typing import Any, Callable, Dict, List, Optional
 
 import websockets
 
-from llm import LLM, LLMError, Tool, create_llm, extract_json
+from mcp_streaming.llm import LLM, LLMError, Tool, create_llm, extract_json
 
 LEVEL_ICONS = {"INFO": "·", "WARN": "⚠", "ERROR": "❌", "FATAL": "💀"}
 ERROR_LEVELS = ("ERROR", "FATAL")

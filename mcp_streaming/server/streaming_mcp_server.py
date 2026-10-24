@@ -11,9 +11,9 @@ from collections import deque
 from typing import Dict, Optional, Set
 import websockets
 
-# USE_MOCK_KAFKA=1 swaps in the in-process mock (used by run_demo.py; no Docker needed)
+# USE_MOCK_KAFKA=1 swaps in the in-process mock (used by mcp_streaming.demo; no Docker needed)
 if os.environ.get("USE_MOCK_KAFKA") == "1":
-    from mock_kafka import Consumer
+    from mcp_streaming.messaging.mock_kafka import Consumer
 else:
     from confluent_kafka import Consumer
 
