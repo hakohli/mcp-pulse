@@ -4,9 +4,9 @@ Thanks for your interest! This project grows through **forks and pull requests**
 
 ## Workflow
 
-1. **Fork** — click [Fork](https://github.com/hakohli/mcp-pulse/fork), or:
+1. **Fork** — click [Fork](https://github.com/kohli6/mcp-pulse/fork), or:
    ```bash
-   gh repo fork hakohli/mcp-pulse --clone && cd mcp-pulse
+   gh repo fork kohli6/mcp-pulse --clone && cd mcp-pulse
    ```
    To work on an industry edition, untick **"Copy the main branch only"** so you also get the `usecase/*` branches.
 2. **Branch** from an up-to-date `main` (or the relevant `usecase/<name>` branch):
@@ -20,7 +20,7 @@ Thanks for your interest! This project grows through **forks and pull requests**
    make test            # must pass — offline, no Docker, no LLM needed
    make demo-offline    # quick end-to-end check
    ```
-4. **Open a pull request** from your fork to `hakohli/mcp-pulse`. Describe what changed, why, and how you tested it.
+4. **Open a pull request** from your fork to `kohli6/mcp-pulse`. Describe what changed, why, and how you tested it.
 
 ## Guidelines
 
@@ -40,4 +40,4 @@ Each use case lives on its own branch `usecase/<name>` (the source of truth) and
 
 ## Questions and ideas
 
-Open a [GitHub issue](https://github.com/hakohli/mcp-pulse/issues) — bug reports, questions and use-case ideas are all welcome.
+Open a [GitHub issue](https://github.com/kohli6/mcp-pulse/issues) — bug reports, questions and use-case ideas are all welcome.

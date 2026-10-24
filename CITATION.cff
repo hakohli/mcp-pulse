@@ -1,5 +1,5 @@
 cff-version: 1.2.0
-message: "If you use or build on MCP Pulse, please cite it and link to the original repository. Forks are welcome: https://github.com/hakohli/mcp-pulse/fork"
+message: "If you use or build on MCP Pulse, please cite it and link to the original repository. Forks are welcome: https://github.com/kohli6/mcp-pulse/fork"
 title: "MCP Pulse: Streaming Context to AI Agents"
 abstract: >-
   A working demo of streaming MCP (Model Context Protocol): real-time events are
@@ -10,9 +10,9 @@ type: software
 authors:
   - given-names: Harshit
     family-names: Kohli
-    alias: hakohli
-repository-code: "https://github.com/hakohli/mcp-pulse"
-url: "https://github.com/hakohli/mcp-pulse"
+    alias: kohli6
+repository-code: "https://github.com/kohli6/mcp-pulse"
+url: "https://github.com/kohli6/mcp-pulse"
 version: 0.2.0
 keywords:
   - model-context-protocol
