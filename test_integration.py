@@ -11,6 +11,8 @@ import os
 
 # Force mock kafka
 os.environ.pop("USE_REAL_KAFKA", None)
+# Tests present self-asserted roles; allowed only via this explicit opt-in.
+os.environ["MCP_AUTH_TEST_BYPASS"] = "1"
 
 from mock_kafka import Producer
 from streaming_mcp_server_cedar import LogStreamConsumer, StreamingMCPServer, kafka_poll_loop
@@ -59,14 +61,14 @@ async def run_test():
     # Start server
     log_stream = LogStreamConsumer()
     server = StreamingMCPServer(log_stream)
-    ws_server = await websockets.serve(server.handle_client, "0.0.0.0", 8765)
+    ws_server = await websockets.serve(server.handle_client, "127.0.0.1", 8765)
     poll_task = asyncio.create_task(kafka_poll_loop(log_stream))
 
     await asyncio.sleep(0.3)
 
     # --- Test 1: Cedar auth - ops-agent can subscribe and get_anomalies ---
     print("\n📋 Test 1: ops-agent subscribes to app-logs")
-    async with websockets.connect("ws://localhost:8765") as ws:
+    async with websockets.connect("ws://127.0.0.1:8765") as ws:
         await ws.send(json.dumps({"method": "auth", "principal": {"id": "agent-1", "role": "ops-agent"}}))
         resp = json.loads(await ws.recv())
         print(f"   Auth: {resp['type']}")
@@ -115,7 +117,7 @@ async def run_test():
 
     # --- Test 3: Cedar auth - viewer DENIED get_anomalies ---
     print("\n📋 Test 3: viewer role denied get_anomalies (Cedar forbid)")
-    async with websockets.connect("ws://localhost:8765") as ws:
+    async with websockets.connect("ws://127.0.0.1:8765") as ws:
         await ws.send(json.dumps({"method": "auth", "principal": {"id": "agent-2", "role": "viewer"}}))
         await ws.recv()
 
@@ -126,7 +128,7 @@ async def run_test():
 
     # --- Test 4: Cedar auth - readonly DENIED subscribe to audit-logs ---
     print("\n📋 Test 4: readonly role denied subscribe to audit-logs (Cedar forbid)")
-    async with websockets.connect("ws://localhost:8765") as ws:
+    async with websockets.connect("ws://127.0.0.1:8765") as ws:
         await ws.send(json.dumps({"method": "auth", "principal": {"id": "agent-3", "role": "readonly"}}))
         await ws.recv()
 
@@ -137,7 +139,7 @@ async def run_test():
 
     # --- Test 5: Cedar auth - senior-ops CAN get_context ---
     print("\n📋 Test 5: senior-ops gets full context window")
-    async with websockets.connect("ws://localhost:8765") as ws:
+    async with websockets.connect("ws://127.0.0.1:8765") as ws:
         await ws.send(json.dumps({"method": "auth", "principal": {"id": "agent-4", "role": "senior-ops"}}))
         await ws.recv()
 

@@ -16,7 +16,9 @@ Standard MCP is pull-based: agents ask for context and get a static snapshot. In
 ## Architecture
 
 **4. What's the data flow?**
-`log_simulator.py` → Kafka (`app-logs` topic) → `streaming_mcp_server.py` → WebSocket → `agent_client.py`
+`log_simulator.py` → Kafka (`app-logs` topic) → `streaming_mcp_server.py` → WebSocket → `ai_agent.py` ⇄ LLM
+
+The LLM never talks to Kafka or the server directly — the agent exposes the server's MCP methods (`get_anomalies`, `get_context`) to the model as tools, and executes the model's tool calls over the same WebSocket.
 
 **5. Why Kafka instead of just WebSockets end-to-end?**
 Kafka provides durability, replayability, and decoupling. If the MCP server restarts, events aren't lost. Multiple consumers can independently read the same stream. You also get consumer groups for load balancing or fan-out.
@@ -27,7 +29,7 @@ The agent uses a single WebSocket connection for both streaming (continuous even
 **7. How does anomaly detection work?**
 Two levels:
 - **Server-side**: Maintains a rolling 100-event window and tracks error rates + top error patterns via `get_anomaly_summary()`.
-- **Agent-side**: Tracks a 20-event sliding window. When the error rate exceeds 30%, it flags an anomaly and queries the server for a full summary.
+- **Agent-side**: Tracks a 20-event sliding window. When the error rate exceeds 30% (and the cooldown has passed), it hands the incident to the LLM, which queries the server via tool calls and returns a structured diagnosis.
 
 ---
 
@@ -51,20 +53,21 @@ No. `cedar_authz.py` is a lightweight regex-based parser for demo purposes. In p
 ## Running the Demo
 
 **11. What are the prerequisites?**
-Python 3.9+, Docker (for Kafka), and `pip install confluent-kafka websockets`.
+Python 3.9+ and `pip install -r requirements.txt`. Docker is only needed for the full real-Kafka setup. For real AI diagnoses you need one LLM provider: Amazon Bedrock (AWS credentials + model access), an OpenAI-compatible API, or a local Ollama. `--provider mock` runs with no LLM at all.
 
 **12. Do I need a real Kafka cluster?**
-For the full demo, yes — a single-node Kafka runs via `docker compose up -d` (Confluent cp-kafka 7.6.0 in KRaft mode, no ZooKeeper). For testing, `mock_kafka.py` provides an in-process drop-in replacement.
+No. `python run_demo.py` runs everything in one process on `mock_kafka.py`, an in-process drop-in replacement. For the full multi-process demo, a single-node Kafka runs via `docker compose up -d` (Confluent cp-kafka 7.6.0 in KRaft mode, no ZooKeeper), published on `127.0.0.1:9092` only.
 
-**13. What's the difference between `agent_client.py` and `agent_client_interactive.py`?**
-- `agent_client.py` — passive monitor. Subscribes, prints events, detects anomalies, suggests fixes. No user input.
-- `agent_client_interactive.py` — same monitoring, but you can type commands mid-stream (`anomalies`, `context`, `status`, `help`, `quit`).
+**13. Which agent should I run?**
+- `ai_agent.py` — the LLM agent. Autonomous spike investigation; add `--interactive` to ask it questions in plain English mid-stream.
+- `agent_client.py` — rule-based baseline (static error → fix lookup). No LLM, no user input.
+- `agent_client_interactive.py` — rule-based baseline with typed commands (`anomalies`, `context`, `status`, `help`, `quit`).
 
 **14. Output looks delayed/buffered — what do I do?**
-Run with `PYTHONUNBUFFERED=1 python agent_client.py` to disable Python's output buffering.
+Run with `PYTHONUNBUFFERED=1 python ai_agent.py` (or any other script) to disable Python's output buffering.
 
 **15. How do I run everything in one terminal?**
-Use the tmux one-liner from the README — it splits into three panes (server, simulator, agent).
+`python run_demo.py` — server, simulator and agent in a single process. For the real-Kafka setup, use the tmux one-liner from the README (three panes: server, simulator, agent).
 
 ---
 
@@ -74,7 +77,7 @@ Use the tmux one-liner from the README — it splits into three panes (server, s
 Each subscriber gets a bounded `asyncio.Queue` (max 500 events). If a slow consumer's queue fills up, it's automatically dropped from the subscriber set. This prevents one slow agent from blocking the entire server.
 
 **17. What error patterns does the agent recognize?**
-Six patterns with mapped remediation suggestions:
+With a real LLM, any — the model reasons over whatever the logs say, including the novel incidents `log_simulator.py --ai` generates. The rule-based agents and the `mock` provider recognize six patterns with mapped remediation suggestions:
 - `Connection refused` → check service status, security groups
 - `Timeout waiting` → increase timeout, add circuit breaker
 - `OutOfMemoryError` → increase heap, check for leaks
@@ -83,7 +86,7 @@ Six patterns with mapped remediation suggestions:
 - `Disk usage critical` → clean logs, expand volume
 
 **18. How are error spikes simulated?**
-`log_simulator.py` runs on a 45-second cycle. Between ticks 30–40, it injects 3–6 ERROR events per second (with a 30% chance of a FATAL). Outside that window, it's normal INFO traffic with occasional WARNs.
+`log_simulator.py` runs on a 45-second cycle. Between ticks 30–40, it injects 3–6 ERROR events per second (with a 30% chance of a FATAL). Outside that window, it's normal INFO traffic with occasional WARNs. With `--ai`, an LLM pre-generates a causally ordered incident (root-cause service fails first, downstream services follow) ~25s before each spike, and the simulator replays it; if the LLM is unavailable it falls back to the static messages.
 
 ---
 
@@ -95,8 +98,14 @@ Yes — anything that produces JSON to the `app-logs` Kafka topic will flow thro
 **20. Can I add new Cedar policies?**
 Add policy strings to the `CEDAR_POLICIES` list in `cedar_authz.py`. Use `streaming_mcp_server_cedar.py` (the Cedar-enabled server variant) to enforce them.
 
-**21. How would I connect a real LLM agent?**
-Replace the hardcoded `FIX_SUGGESTIONS` dict in the agent client with an LLM call. The streaming event data and anomaly summaries become the context window for the model. The WebSocket protocol stays the same.
+**21. How is the LLM connected?**
+`llm.py` gives every provider the same interface (`create_llm().new_conversation(system, tools).ask(...)`) and runs the tool-calling loop. `ai_agent.py` registers three tools — `get_anomalies`, `get_context` (with level/service/limit filters) and `get_local_stats` — and executes the model's calls over the existing WebSocket. The protocol is unchanged; the server doesn't know an LLM is involved. Switch providers with `LLM_PROVIDER` or `--provider`; add one by subclassing `LLM`/`Conversation` in `llm.py`.
+
+**21b. How do I keep LLM costs and latency under control?**
+The LLM is never on the hot path. A cheap local detector decides *when* to call it, `--cooldown` (default 30s) caps the call rate, each diagnosis uses a fresh short conversation, and `get_context` returns at most 100 filtered events. The default Bedrock model is Claude 3.5 Haiku for speed and cost.
+
+**21c. Can log content manipulate the LLM (prompt injection)?**
+Logs are untrusted input. The system prompt tells the model to treat log content as data and never follow instructions inside it, and all of the model's tools are read-only — the worst a malicious log line can do is skew a diagnosis, not take an action. If you add write-capable tools (restart a service, roll back a deploy), gate them behind human confirmation and Cedar policies.
 
 ---
 
@@ -158,12 +167,12 @@ Currently `get_context` returns the in-memory 100-event window. For true replay:
 - Stream replayed events with a `{"type": "replay_event"}` tag so agents can distinguish live from historical.
 - Consider backpressure — replaying 10,000 events at once will blow the 500-event queue. Batch and pace delivery.
 
-**31. The agent's `FIX_SUGGESTIONS` is a static lookup. How would you integrate an LLM without adding latency to the event stream?**
-Don't block the event stream on LLM calls. Instead:
-- Buffer errors into a batch (e.g., 5 errors or 10-second window).
-- Send the batch to the LLM asynchronously as a background task.
-- Print the LLM's remediation when it returns, tagged with the original event timestamps.
-- Keep the static lookup as a fast fallback for known patterns — only invoke the LLM for unrecognized errors or when the agent needs root-cause correlation across multiple error types.
+**31. How does the LLM agent avoid adding latency to the event stream?**
+It never blocks the stream on an LLM call:
+- The WebSocket reader keeps consuming and printing events; a spike schedules the diagnosis as a background asyncio task, and the blocking SDK/HTTP call runs in a worker thread.
+- Only one diagnosis runs at a time, and `--cooldown` rate-limits them.
+- Tool-call requests share the socket with the push stream; a lock keeps one request in flight so responses can't be confused with each other, while events keep flowing.
+- The `mock` provider and the rule-based agents remain as a zero-latency fallback when no LLM is available.
 
 **32. What ordering guarantees does this architecture provide?**
 Kafka guarantees ordering within a partition. Since the demo uses a single-partition topic, events arrive in producer order. But:
