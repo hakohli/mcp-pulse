@@ -45,6 +45,34 @@ class FactoryTest(unittest.TestCase):
         with self.assertRaises(LLMError):
             create_llm("nope")
 
+    def test_openai_without_key_fails_at_startup(self):
+        saved = os.environ.pop("OPENAI_API_KEY", None)
+        saved_url = os.environ.pop("OPENAI_BASE_URL", None)
+        try:
+            with self.assertRaises(LLMError) as ctx:
+                create_llm("openai")
+            self.assertIn("OPENAI_API_KEY is not set", str(ctx.exception))
+            # Local OpenAI-compatible servers don't need a key
+            self.assertEqual(create_llm("ollama").name, "openai")
+        finally:
+            if saved is not None:
+                os.environ["OPENAI_API_KEY"] = saved
+            if saved_url is not None:
+                os.environ["OPENAI_BASE_URL"] = saved_url
+
+    def test_http_error_message_is_trimmed(self):
+        import io
+        import urllib.error
+        from unittest import mock
+        from mcp_streaming.llm import OpenAICompatLLM
+        llm = OpenAICompatLLM(model="m", base_url="http://127.0.0.1:1/v1", api_key="k")
+        body = json.dumps({"error": {"message": "Incorrect API key provided.", "type": "invalid_request_error"}})
+        err = urllib.error.HTTPError("u", 401, "Unauthorized", {}, io.BytesIO(body.encode()))
+        with mock.patch("urllib.request.urlopen", side_effect=err):
+            with self.assertRaises(LLMError) as ctx:
+                llm._post({})
+        self.assertEqual(str(ctx.exception), "HTTP 401 from http://127.0.0.1:1/v1: Incorrect API key provided.")
+
     def test_mock_provider(self):
         self.assertEqual(create_llm("mock").describe(), "mock")
 

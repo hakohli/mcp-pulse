@@ -202,6 +202,11 @@ class OpenAICompatLLM(LLM):
         self.api_key = api_key or os.environ.get("OPENAI_API_KEY")
         self.max_tokens = max_tokens
         self.temperature = temperature
+        # Fail at startup, not at the first incident: the hosted OpenAI API always needs a key.
+        # (Local OpenAI-compatible servers such as Ollama or vLLM usually don't.)
+        if not self.api_key and self.base_url == DEFAULT_OPENAI_BASE_URL:
+            raise LLMError("OPENAI_API_KEY is not set. Run `export OPENAI_API_KEY=...` in this same terminal "
+                           "(or use --provider ollama / --provider mock).")
 
     def describe(self) -> str:
         return f"openai:{self.model} ({self.base_url})"
@@ -221,8 +226,12 @@ class OpenAICompatLLM(LLM):
             with urllib.request.urlopen(req, timeout=60) as resp:
                 return json.loads(resp.read().decode("utf-8"))
         except urllib.error.HTTPError as exc:
-            body = exc.read().decode("utf-8", "replace")[:500]
-            raise LLMError(f"HTTP {exc.code} from {self.base_url}: {body}") from exc
+            body = exc.read().decode("utf-8", "replace")
+            try:  # OpenAI-style {"error": {"message": ...}} -> just the message
+                body = json.loads(body)["error"]["message"]
+            except (ValueError, KeyError, TypeError):
+                pass
+            raise LLMError(f"HTTP {exc.code} from {self.base_url}: {' '.join(str(body).split())[:300]}") from exc
         except (urllib.error.URLError, OSError, ValueError) as exc:
             raise LLMError(f"request to {self.base_url} failed: {exc}") from exc
 
