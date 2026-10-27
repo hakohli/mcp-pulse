@@ -403,4 +403,5 @@ if __name__ == "__main__":
     except KeyboardInterrupt:
         pass
     except LLMError as exc:
+        sys.stdout.flush()  # keep banner/log lines ahead of the error
         sys.exit(f"LLM setup failed: {exc}")
