@@ -343,7 +343,7 @@ If output appears delayed, prefix commands with `PYTHONUNBUFFERED=1` (the `make`
 ## Tests
 
 ```bash
-make test                                          # all 29 tests — no Docker, no LLM, no network
+make test                                          # all tests — no Docker, no LLM, no network
 python -m unittest discover -s tests -t . -v       # same, without make
 python -m unittest tests.test_auto_insurance -v    # use-case: scenarios, runbooks, redaction, roles
 python -m unittest tests.test_ai_agent -v          # LLM layer + agent

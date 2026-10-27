@@ -15,7 +15,7 @@ cd use-cases/auto-insurance
 make install && source .venv/bin/activate   # its own virtualenv
 make demo-offline                            # offline end-to-end demo (mock LLM)
 make demo-scenario SCENARIO=staged_accident_ring
-make test                                    # 29 tests
+make test                                    # all tests (offline)
 ```
 
 Already have the root virtualenv? Reuse it instead of creating a new one: `make demo-offline PYTHON=../../.venv/bin/python`.
